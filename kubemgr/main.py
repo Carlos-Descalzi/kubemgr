@@ -28,13 +28,14 @@ _CLUSTERS_CONFIG_TEMPLATE = """
 #configfile=[place here the path to your kubeconfig file]
 """
 _KUBEMGR_CONFIG_TEMPLATE = """
+#editor=/usr/bin/vim
 #pods.format={item.metadata.name}"
 """
 _HELP = f"""
-Help:
-=====
+{ansi.BOLD}Help:
+====={ansi.RESET}
 
-Keys:
+{ansi.UNDERLINE}Keys:{ansi.RESET}
     tab: cycles focus across UI components.
     cursor up and down: move across items in different lists.
     curor left and right: switch across pods/cronjobs/jobs/etc. in main view when focused.
@@ -47,10 +48,14 @@ Keys:
     for pods:
         l: View pod logs.
 
-Configuration files:
+{ansi.UNDERLINE}Configuration files:{ansi.RESET}
+
     $HOME/.kubemgr/kubemgr.ini: General configuration file.
+        editor=Absolute path to editor used for Yaml
 
     $HOME/.kubemgr/clusters.ini: Clusters configuration file.
+        [Cluster name enclosed in brackets]
+        configfile=[Absolute path to kubeconfig yaml file]
 
     $HOME/.kubemgr/colors.ini: UI colors and styles.
 """

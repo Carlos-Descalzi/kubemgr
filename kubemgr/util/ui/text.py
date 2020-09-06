@@ -5,9 +5,21 @@ from kubemgr.util import kbd, ansi
 class TextView(View):
     def __init__(self, rect=None, text=[]):
         super().__init__(rect)
-        self._text = text
+        self._text = self._sanitize(text)
         self._scroll_x = 0
         self._scroll_y = 0
+
+    def _sanitize(self, text):
+        return list(map(self._sanitize_line, text))
+
+    def _sanitize_line(self, text_line):
+        return (text_line
+            .replace('\n','')
+            .replace(
+                ansi.RESET,
+                ansi.RESET+self.get_color('bg')+self.get_color('fg')
+            )
+        )
 
     def update(self):
         height = self._rect.height
