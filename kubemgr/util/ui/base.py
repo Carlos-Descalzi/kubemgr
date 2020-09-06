@@ -3,6 +3,23 @@ import time
 import sys
 import tty
 
+COLORS = {
+    "titledview.bg":"\u001b[48;5;241m",
+    "titledview.fg":"\u001b[38;5;0m",
+    "titledview.focused.bg":"\u001b[48;5;244m",
+    "titledview.focused.fg":"\u001b[38;5;255m",
+    "tabbedview.bg":"\u001b[48;5;241m",
+    "tabbedview.fg":"\u001b[38;5;0m",
+    "tabbedview.focused.bg":"\u001b[48;5;244m",
+    "tabbedview.focused.fg":"\u001b[38;5;255m",
+    "tabbedview.selected.bg":"\u001b[48;5;241m",
+    "tabbedview.selected.fg":"\u001b[38;5;0m",
+    "tabbedview.focused.selected.bg":"\u001b[48;5;244m",
+    "tabbedview.focused.selected.fg":"\u001b[38;5;255m\u001b[1m",
+    "textview.bg":"\u001b[48;5;236m",
+    "textview.fg":"\u001b[38;5;255m",
+}
+
 class Point:
 
     def __init__(self, x=0, y=0):
@@ -71,4 +88,3 @@ class Rect:
             and self.height == other.height
         )
 
-COLORS = {}
