@@ -1,8 +1,8 @@
 from kubemgr.util.ui import ListModel
 from abc import ABCMeta, abstractmethod
 
-class AsyncListModel(ListModel, metaclass=ABCMeta):
 
+class AsyncListModel(ListModel, metaclass=ABCMeta):
     def __init__(self, application):
         self._application = application
         self._application.add_task(self.fetch_data)

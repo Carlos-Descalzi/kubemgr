@@ -1,12 +1,13 @@
 import sys
 import subprocess
+import re
 
 
 class UiWriter:
     def __init__(self):
         self._buffer = ""
 
-    def clrsrc(self):
+    def clrscr(self):
         self._buffer += "\u001b[2J"
         return self
 
@@ -53,15 +54,31 @@ class UiWriter:
     def __str__(self):
         return self._buffer
 
+    def __len__(self):
+        l = 0
+        skip = False
+        for c in self._buffer:
+            if c == "\u001b":
+                skip = True
+            elif c in "mHJ" and skip:
+                skip = False
+            elif not skip:
+                l += 1
+        return l
+
+
 def begin():
     return UiWriter()
 
+
 def terminal_size():
-    output = subprocess.check_output(['stty','size']).decode()
-    return tuple(map(int,output.strip().split(' ')))
+    output = subprocess.check_output(["stty", "size"]).decode()
+    return tuple(map(int, output.strip().split(" ")))
+
 
 def cursor_on():
-    subprocess.check_output(['tput','cnorm'])
+    subprocess.check_output(["tput", "cnorm"])
+
 
 def cursor_off():
-    subprocess.check_output(['tput','civis'])
+    subprocess.check_output(["tput", "civis"])

@@ -2,8 +2,8 @@ from kubernetes import client
 from .util import AsyncListModel
 from .resource import ResourceListView
 
-class NodesListModel(AsyncListModel):
 
+class NodesListModel(AsyncListModel):
     def fetch_data(self):
         cluster = self._application.selected_cluster
 

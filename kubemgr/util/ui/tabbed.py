@@ -43,36 +43,25 @@ class TabbedView(View):
         for i, tab in enumerate(self._tabs):
 
             if i == self._active:
-                header_buff.write(
-                    self.get_color('selected.bg')
-                ).write(
-                    self.get_color('selected.fg')
+                header_buff.write(self.get_color("selected.bg")).write(
+                    self.get_color("selected.fg")
                 )
             else:
-                header_buff.write(
-                    self.get_color('bg')
-                ).write(
-                    self.get_color('fg')
-                )
+                header_buff.write(self.get_color("bg")).write(self.get_color("fg"))
             header_buff.write(f" {tab.title} ").reset()
-
-        (ansi
-            .begin()
-            .gotoxy(self._rect.x, self._rect.y)
-            .write(self.get_color('bg'))
-            .writefill('',self._rect.width)
-        ).put()
-
-        header = str(header_buff)
-
-        #header = header[0 : self._rect.width]
 
         (
             ansi.begin()
             .gotoxy(self._rect.x, self._rect.y)
-            .write(header)
-            .reset()
+            .write(self.get_color("bg"))
+            .writefill("", self._rect.width)
         ).put()
+
+        header = str(header_buff)
+
+        # header = header[0 : self._rect.width]
+
+        (ansi.begin().gotoxy(self._rect.x, self._rect.y).write(header).reset()).put()
 
         active_tab = self._tabs[self._active] if self._tabs else None
 

@@ -4,24 +4,24 @@ import sys
 import tty
 
 COLORS = {
-    "titledview.bg":"\u001b[48;5;241m",
-    "titledview.fg":"\u001b[38;5;0m",
-    "titledview.focused.bg":"\u001b[48;5;244m",
-    "titledview.focused.fg":"\u001b[38;5;255m",
-    "tabbedview.bg":"\u001b[48;5;241m",
-    "tabbedview.fg":"\u001b[38;5;0m",
-    "tabbedview.focused.bg":"\u001b[48;5;244m",
-    "tabbedview.focused.fg":"\u001b[38;5;255m",
-    "tabbedview.selected.bg":"\u001b[48;5;241m",
-    "tabbedview.selected.fg":"\u001b[38;5;0m",
-    "tabbedview.focused.selected.bg":"\u001b[48;5;244m",
-    "tabbedview.focused.selected.fg":"\u001b[38;5;255m\u001b[1m",
-    "textview.bg":"\u001b[48;5;236m",
-    "textview.fg":"\u001b[38;5;255m",
+    "titledview.bg": "\u001b[48;5;241m",
+    "titledview.fg": "\u001b[38;5;0m",
+    "titledview.focused.bg": "\u001b[48;5;244m",
+    "titledview.focused.fg": "\u001b[38;5;255m",
+    "tabbedview.bg": "\u001b[48;5;241m",
+    "tabbedview.fg": "\u001b[38;5;0m",
+    "tabbedview.focused.bg": "\u001b[48;5;244m",
+    "tabbedview.focused.fg": "\u001b[38;5;255m",
+    "tabbedview.selected.bg": "\u001b[48;5;241m",
+    "tabbedview.selected.fg": "\u001b[38;5;0m",
+    "tabbedview.focused.selected.bg": "\u001b[48;5;244m",
+    "tabbedview.focused.selected.fg": "\u001b[38;5;255m\u001b[1m",
+    "textview.bg": "\u001b[48;5;236m",
+    "textview.fg": "\u001b[38;5;255m",
 }
 
-class Point:
 
+class Point:
     def __init__(self, x=0, y=0):
         self.x = x
         self.y = y
@@ -33,14 +33,10 @@ class Point:
         return f"Point:{self.x},{self.y}"
 
     def __eq__(self, other):
-        return (
-            isinstance(other, Point)
-            and self.x == other.x
-            and self.y == other.y
-        )
+        return isinstance(other, Point) and self.x == other.x and self.y == other.y
+
 
 class Dimension:
-
     def __init__(self, width=0, height=0):
         self.width = width
         self.height = height
@@ -49,7 +45,7 @@ class Dimension:
         return Dimension(self.width, self.height)
 
     def __str__(self):
-        return f'Dimension:{self.width},{self.height}'
+        return f"Dimension:{self.width},{self.height}"
 
     def __eq__(self, other):
         return (
@@ -57,6 +53,7 @@ class Dimension:
             and self.width == other.width
             and self.height == other.height
         )
+
 
 class Rect:
     def __init__(self, x=0, y=0, width=0, height=0):
@@ -87,4 +84,3 @@ class Rect:
             and self.width == other.width
             and self.height == other.height
         )
-

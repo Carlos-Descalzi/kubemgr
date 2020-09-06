@@ -27,6 +27,5 @@ class ServicesListModel(AsyncListModel):
 
 
 class ServicesListView(ResourceListView):
-
     def do_render_item(self, item, width):
         return item.metadata.name

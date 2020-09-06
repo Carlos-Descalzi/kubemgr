@@ -41,9 +41,9 @@ class TitledView(View):
     def update(self):
         buff = ansi.begin().gotoxy(self._rect.x, self._rect.y)
 
-        (buff
-            .write(self.get_color('bg'))
-            .write(self.get_color('fg'))
+        (
+            buff.write(self.get_color("bg"))
+            .write(self.get_color("fg"))
             .writefill(self._title, self._rect.width)
             .reset()
         ).put()

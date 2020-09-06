@@ -6,6 +6,7 @@ import sys
 import tty
 from abc import ABCMeta, abstractmethod
 
+
 class ListModel(metaclass=ABCMeta):
 
     _on_item_added = None
@@ -60,7 +61,7 @@ class ListView(View):
         return self._on_select
 
     on_select = property(get_on_select, set_on_select)
-    
+
     @property
     def current_item(self):
         return self._model.get_item(self._current_index)
@@ -95,12 +96,12 @@ class ListView(View):
         max_items = self._rect.height
 
         from_index = self._scroll_y
-        to_index = min(self._scroll_y + max_items -1,self._model.get_item_count()-1)
+        to_index = min(self._scroll_y + max_items - 1, self._model.get_item_count() - 1)
 
         current_index = self._scroll_y + self._current_index
         selected_index = self._scroll_y + self._selected_index
 
-        for i in range(from_index, to_index +1):
+        for i in range(from_index, to_index + 1):
             item = self._model.get_item(i)
             item_index = self._scroll_y + i
 

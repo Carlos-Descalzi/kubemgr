@@ -2,8 +2,8 @@ from kubernetes import client
 from .util import AsyncListModel
 from .resource import ResourceListView
 
-class NamespacesListModel(AsyncListModel):
 
+class NamespacesListModel(AsyncListModel):
     def fetch_data(self):
         cluster = self._application.selected_cluster
 
@@ -18,7 +18,7 @@ class NamespacesListModel(AsyncListModel):
         else:
             self._items = []
 
-class NamespacesListView(ResourceListView):
 
+class NamespacesListView(ResourceListView):
     def do_render_item(self, item, width):
         return item.metadata.name

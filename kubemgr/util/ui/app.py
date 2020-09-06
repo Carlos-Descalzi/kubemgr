@@ -30,7 +30,7 @@ class Application:
         orig_fl = fcntl.fcntl(sys.stdin, fcntl.F_GETFL)
         fcntl.fcntl(sys.stdin, fcntl.F_SETFL, orig_fl | os.O_NONBLOCK)
 
-        ansi.begin().clrsrc().put()
+        ansi.begin().clrscr().put()
         count = 0
         while self._active:
             self.empty_queue()
@@ -52,7 +52,6 @@ class Application:
                 task()
             except Exception as e:
                 print(e)
-
 
     def queue_task(self, task):
         if not self._active_popup:
@@ -112,5 +111,5 @@ class Application:
             self._active_popup.set_application(None)
             self._active_popup = None
 
-        ansi.begin().clrsrc().put()
+        ansi.begin().clrscr().put()
         self._update_view()

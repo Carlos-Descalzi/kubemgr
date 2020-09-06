@@ -44,13 +44,14 @@ class View:
 
     def get_color_key(self, color):
         return (
-            self.__class__.__name__.lower() 
-            + ('.focused' if self.focused else '') 
-            + '.' + color
+            self.__class__.__name__.lower()
+            + (".focused" if self.focused else "")
+            + "."
+            + color
         )
 
     def get_color(self, key):
-        return COLORS.get(self.get_color_key(key),'')
+        return COLORS.get(self.get_color_key(key), "")
 
     def on_key_press(self, key):
         pass

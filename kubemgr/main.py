@@ -27,6 +27,10 @@ _CLUSTERS_CONFIG_TEMPLATE = """
 #[Cluster Name]
 #configfile=[place here the path to your kubeconfig file]
 """
+_KUBEMGR_CONFIG_TEMPLATE = """
+#pods.format={item.metadata.name}"
+"""
+
 
 class Cluster:
     def __init__(self, config_file, config, api_client=None):
@@ -46,6 +50,7 @@ class MainApp(Application):
         super().__init__()
         self._task_executor = TaskExecutor()
         self._clusters = {}
+        self._config = {}
         self._selected_cluster_name = None
         self._read_configuration(config_dir)
 
@@ -77,35 +82,33 @@ class MainApp(Application):
         v_nodes_start = v_clusters_height + 1
         v_nodes_height = int(max_height * 0.3)
         v_namespaces_start = v_nodes_start + v_nodes_height + 1
-        v_namespaces_height = max_height - v_namespaces_start -1
+        v_namespaces_height = max_height - v_namespaces_start - 1
 
         tab_width = max_width - (h_divider_pos + 1)
 
         self.add_component(
             TitledView(
-                rect=Rect(1, 1, h_divider_pos, v_clusters_height), 
-                title="Clusters", 
-                inner=self._clusters_view
+                rect=Rect(1, 1, h_divider_pos, v_clusters_height),
+                title="Clusters",
+                inner=self._clusters_view,
             )
         )
         self.add_component(
             TitledView(
-                rect=Rect(1, v_nodes_start, h_divider_pos, v_nodes_height), 
-                title="Nodes", 
-                inner=self._nodes_view
+                rect=Rect(1, v_nodes_start, h_divider_pos, v_nodes_height),
+                title="Nodes",
+                inner=self._nodes_view,
             )
         )
         self.add_component(
             TitledView(
                 rect=Rect(1, v_namespaces_start, h_divider_pos, v_namespaces_height),
                 title="Namespaces",
-                inner=self._namespaces_view
+                inner=self._namespaces_view,
             )
         )
-        tabs = TabbedView(
-            rect=Rect(h_divider_pos + 1, 1, tab_width, 30)
-        )
-        
+        tabs = TabbedView(rect=Rect(h_divider_pos + 1, 1, tab_width, 30))
+
         tabs.add_tab("Pods", self._pods_view)
         tabs.add_tab("Cronjobs", self._cron_jobs_view)
         tabs.add_tab("Jobs", self._jobs_view)
@@ -139,27 +142,44 @@ class MainApp(Application):
             return self._clusters[self._selected_cluster_name]
         return None
 
+    def get_config(self):
+        return self._config
+
     def _read_configuration(self, config_dir):
 
         if not os.path.isdir(config_dir):
             os.makedirs(config_dir)
 
+        self._read_general_config(config_dir)
+        self._read_colors_config(config_dir)
+        self._read_clusters_config(config_dir)
+
+    def _read_general_config(self, config_dir):
+        general_config_file = os.path.join(config_dir, "kubemgr.ini")
+
+        if os.path.isfile(general_config_file):
+            parser = configparser.ConfigParser()
+            parser.read(general_config_file)
+            self._config = parser["DEFAULT"]
+
+    def _read_colors_config(self, config_dir):
         colors_config_file = os.path.join(config_dir, "colors.ini")
 
         if os.path.isfile(colors_config_file):
             parser = configparser.ConfigParser()
             parser.read(colors_config_file)
 
-            for key in parser['DEFAULT']:
-                color_val = parser['DEFAULT'][key]
+            for key in parser["DEFAULT"]:
+                color_val = parser["DEFAULT"][key]
                 color = bytes(color_val, "utf-8").decode("unicode_escape")
                 COLORS[key] = color
 
-        config_file = os.path.join(config_dir, "clusters.ini")
+    def _read_clusters_config(self, config_dir):
+        clusters_config_file = os.path.join(config_dir, "clusters.ini")
 
-        if os.path.isfile(config_file):
+        if os.path.isfile(clusters_config_file):
             parser = configparser.ConfigParser()
-            parser.read(config_file)
+            parser.read(clusters_config_file)
 
             for section in parser.sections():
                 config_file = parser[section]["configfile"]
@@ -170,7 +190,7 @@ class MainApp(Application):
             if self._clusters:
                 self._selected_cluster_name = next(iter(self._clusters.keys()))
         else:
-            with open(config_file,'w') as f:
+            with open(config_file, "w") as f:
                 f.write(_CLUSTERS_CONFIG_TEMPLATE)
 
     def _read_kube_config(self, config_file_path):

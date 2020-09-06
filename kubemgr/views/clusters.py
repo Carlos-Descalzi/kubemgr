@@ -1,6 +1,7 @@
 from kubemgr.util.ui import ListModel, ListView
 from ..util import ansi
 
+
 class ClustersListModel(ListModel):
     def __init__(self, application):
         self._application = application
@@ -11,6 +12,7 @@ class ClustersListModel(ListModel):
 
     def get_item(self, index):
         return self._clusters[index]
+
 
 class ClusterListView(ListView):
     def render_item(self, item, current, selected):

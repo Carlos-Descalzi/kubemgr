@@ -2,8 +2,8 @@ from kubernetes import client
 from .util import AsyncListModel
 from .resource import ResourceListView
 
-class ConfigMapsListModel(AsyncListModel):
 
+class ConfigMapsListModel(AsyncListModel):
     def __init__(self, application):
         super().__init__(application)
         self._namespace = None
