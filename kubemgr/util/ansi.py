@@ -1,30 +1,35 @@
 import sys
 import subprocess
 import re
-
+        
+UNDERLINE = "\u001b[4m"
+BOLD = "\u001b[1m"
+UNDERLINE = "\u001b[4m"
+RESET = "\u001b[0m"
+CLRSCR = "\u001b[2J"
 
 class UiWriter:
     def __init__(self):
         self._buffer = ""
 
     def clrscr(self):
-        self._buffer += "\u001b[2J"
+        self._buffer += CLRSCR
         return self
 
     def underline(self):
-        self._buffer += "\u001b[4m"
+        self._buffer += UNDERLINE
         return self
 
     def reverse(self):
-        self._buffer += "\u001b[7m"
+        self._buffer += REVERSE
         return self
 
     def bold(self):
-        self._buffer += "\u001b[1m"
+        self._buffer += BOLD
         return self
 
     def reset(self):
-        self._buffer += "\u001b[0m"
+        self._buffer += RESET
         return self
 
     def gotoxy(self, x, y):

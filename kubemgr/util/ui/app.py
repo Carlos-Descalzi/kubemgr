@@ -66,6 +66,8 @@ class Application:
                 self._handle_exit()
             elif keystroke == kbd.KEY_TAB:
                 self._cycle_focus()
+            elif keystroke == ord('h'):
+                self.show_help()
             else:
                 self._send_key_event(keystroke)
 
@@ -101,6 +103,9 @@ class Application:
         else:
             for component in self._components:
                 component.update()
+
+    def show_help(self):
+        pass
 
     def open_popup(self, view):
         self._active_popup = view

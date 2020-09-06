@@ -3,7 +3,7 @@ import time
 import configparser
 import yaml
 from .util import ansi
-from .util.ui import COLORS, Application, Rect, TitledView, TabbedView
+from .util.ui import COLORS, Application, Rect, TitledView, TabbedView, TextView
 from .util.executor import TaskExecutor
 from .views.clusters import ClusterListView, ClustersListModel
 from .views.nodes import NodesListView, NodesListModel
@@ -29,6 +29,30 @@ _CLUSTERS_CONFIG_TEMPLATE = """
 """
 _KUBEMGR_CONFIG_TEMPLATE = """
 #pods.format={item.metadata.name}"
+"""
+_HELP = f"""
+Help:
+=====
+
+Keys:
+    tab: cycles focus across UI components.
+    cursor up and down: move across items in different lists.
+    curor left and right: switch across pods/cronjobs/jobs/etc. in main view when focused.
+    h: Show this help.
+    Esc: Closes popup if open, otherwise closes the application.
+    for nodes, namespaces, pods, cronjobs, etc:
+        v: display resource as Yaml
+        e: Opens editor to edit resource.
+        d: Deletes de selected resource
+    for pods:
+        l: View pod logs.
+
+Configuration files:
+    $HOME/.kubemgr/kubemgr.ini: General configuration file.
+
+    $HOME/.kubemgr/clusters.ini: Clusters configuration file.
+
+    $HOME/.kubemgr/colors.ini: UI colors and styles.
 """
 
 
@@ -144,6 +168,22 @@ class MainApp(Application):
 
     def get_config(self):
         return self._config
+
+    def show_help(self):
+        max_height, max_width = ansi.terminal_size()
+
+        popup_width = int(max_width * 0.75)
+        popup_height = int(max_height * 0.75)
+
+        rect = Rect(
+            int((max_width - popup_width) / 2),
+            int((max_height - popup_height) / 2),
+            popup_width,
+            popup_height,
+        )
+        text_view = TextView(rect=rect, text=_HELP.split('\n'))
+        self.open_popup(text_view)
+
 
     def _read_configuration(self, config_dir):
 
