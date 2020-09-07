@@ -66,7 +66,7 @@ class Application:
                 self._handle_exit()
             elif keystroke == kbd.KEY_TAB:
                 self._cycle_focus()
-            elif keystroke == ord('h'):
+            elif keystroke == ord("h"):
                 self.show_help()
             else:
                 self._send_key_event(keystroke)

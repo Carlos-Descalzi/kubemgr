@@ -36,13 +36,13 @@ class ListModel(metaclass=ABCMeta):
 
 
 class ListView(View):
-    def __init__(self, rect=None, model=None):
+    def __init__(self, rect=None, model=None, selectable=False):
         super().__init__(rect)
         self._model = None
         self._scroll_y = 0
-        self._selectable = False
+        self._selectable = selectable
         self._current_index = 0
-        self._selected_index = 0
+        self._selected_index = -1
         self._on_select = None
         self.set_model(model)
 
@@ -99,7 +99,11 @@ class ListView(View):
         to_index = min(self._scroll_y + max_items - 1, self._model.get_item_count() - 1)
 
         current_index = self._scroll_y + self._current_index
-        selected_index = self._scroll_y + self._selected_index
+        selected_index = (
+            (self._scroll_y + self._selected_index)
+            if self._selected_index != -1
+            else -1
+        )
 
         for i in range(from_index, to_index + 1):
             item = self._model.get_item(i)
@@ -135,11 +139,21 @@ class ListView(View):
                 self.queue_update()
         elif key == 13:
             if self._selectable:
-                self._selected_index = self._current_index
-                self._notify_selected()
+                self._select(self._current_index)
 
-    def _notify_selected(self):
-        item = self._model.get_item(self._selected_index)
+    def _select(self, index):
+        self._selected_index = index
+        self._notify_selected(index)
+        self.update()
 
+    def get_selected_item(self):
+        if self._selected_index != -1:
+            return self._model.get_item(self._selected_index)
+
+    def get_selected_index(self):
+        return self._selected_index
+
+    def _notify_selected(self, index):
         if self._on_select:
+            item = self._model.get_item(index) if index != -1 else None
             self._on_select(item)

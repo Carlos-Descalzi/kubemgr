@@ -8,6 +8,9 @@ class DeploymentsListModel(AsyncListModel):
         super().__init__(application)
         self._namespace = None
 
+    def set_namespace(self, namespace):
+        self._namespace = namespace
+
     def fetch_data(self):
         cluster = self._application.selected_cluster
 
@@ -16,9 +19,9 @@ class DeploymentsListModel(AsyncListModel):
             api = client.AppsV1Api(api_client)
 
             if self._namespace:
-                cronjobs = api.list_namespaced_deployment(self._namespace)
+                cronjobs = api.list_namespaced_daemon_set(self._namespace)
             else:
-                cronjobs = api.list_deployment_for_all_namespaces()
+                cronjobs = api.list_daemon_set_for_all_namespaces()
 
             self._items = cronjobs.items
         else:

@@ -13,12 +13,8 @@ class TextView(View):
         return list(map(self._sanitize_line, text))
 
     def _sanitize_line(self, text_line):
-        return (text_line
-            .replace('\n','')
-            .replace(
-                ansi.RESET,
-                ansi.RESET+self.get_color('bg')+self.get_color('fg')
-            )
+        return text_line.replace("\n", "").replace(
+            ansi.RESET, ansi.RESET + self.get_color("bg") + self.get_color("fg")
         )
 
     def update(self):
@@ -67,8 +63,9 @@ class TextView(View):
         self.update()
 
     def _scroll_down(self):
-        self._scroll_y += 1
-        self.update()
+        if self._scroll_y + self._rect.height < len(self._text) - 1:
+            self._scroll_y += 1
+            self.update()
 
     def _scroll_up(self):
         if self._scroll_y > 0:

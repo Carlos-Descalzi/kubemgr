@@ -8,6 +8,9 @@ class ServicesListModel(AsyncListModel):
         super().__init__(application)
         self._namespace = None
 
+    def set_namespace(self, namespace):
+        self._namespace = namespace
+
     def fetch_data(self):
         cluster = self._application.selected_cluster
 

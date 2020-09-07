@@ -8,6 +8,9 @@ class PodsListModel(AsyncListModel):
         super().__init__(application)
         self._namespace = None
 
+    def set_namespace(self, namespace):
+        self._namespace = namespace
+
     def get_core_api(self):
         cluster = self._application.selected_cluster
         if cluster:

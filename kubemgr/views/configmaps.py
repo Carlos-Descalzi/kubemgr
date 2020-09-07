@@ -8,6 +8,9 @@ class ConfigMapsListModel(AsyncListModel):
         super().__init__(application)
         self._namespace = None
 
+    def set_namespace(self, namespace):
+        self._namespace = namespace
+
     def fetch_data(self):
         cluster = self._application.selected_cluster
 
@@ -17,7 +20,7 @@ class ConfigMapsListModel(AsyncListModel):
             core_api = client.CoreV1Api(api_client)
 
             if self._namespace:
-                configmaps = core_api.list_namespaced_config_map()
+                configmaps = core_api.list_namespaced_config_map(self._namespace)
             else:
                 configmaps = core_api.list_config_map_for_all_namespaces()
 

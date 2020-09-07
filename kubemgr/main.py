@@ -1,3 +1,6 @@
+import logging
+
+logging.basicConfig(filename="kubemgr.log", format="%(message)s", level=logging.INFO)
 import os
 import time
 import configparser
@@ -14,6 +17,8 @@ from .views.namespaces import NamespacesListModel, NamespacesListView
 from .views.services import ServicesListModel, ServicesListView
 from .views.configmaps import ConfigMapsListModel, ConfigMapsListView
 from .views.deployments import DeploymentsListModel, DeploymentsListView
+from .views.daemonsets import DaemonSetsListModel, DaemonSetsListView
+from .views.secrets import SecretsListModel, SecretsListView
 from kubernetes import client, config
 from kubernetes.client import configuration
 from kubernetes.config.kube_config import KubeConfigLoader
@@ -32,32 +37,42 @@ _KUBEMGR_CONFIG_TEMPLATE = """
 #pods.format={item.metadata.name}"
 """
 _HELP = f"""
-{ansi.BOLD}Help:
-====={ansi.RESET}
+{ansi.BOLD}Help:{ansi.RESET}
+{ansi.BOLD}====={ansi.RESET}
 
 {ansi.UNDERLINE}Keys:{ansi.RESET}
-    tab: cycles focus across UI components.
-    cursor up and down: move across items in different lists.
-    curor left and right: switch across pods/cronjobs/jobs/etc. in main view when focused.
-    h: Show this help.
-    Esc: Closes popup if open, otherwise closes the application.
+    h                : Show this help.
+    tab              : cycles focus across UI components.
+    esc              : Closes popup if open, otherwise 
+                       closes the application.
+    cursor up/down   : move across items in different lists.
+    cursor left/right: switch across pods/cronjobs/jobs/etc. 
+                       in main view when focused.
     for nodes, namespaces, pods, cronjobs, etc:
         v: display resource as Yaml
         e: Opens editor to edit resource.
         d: Deletes de selected resource
     for pods:
         l: View pod logs.
+    for nodes:
+        l: view labels for node.
+    for namespaces:
+        enter: toggle namespace filter, all other views will 
+               filter its item by selected namespace
 
 {ansi.UNDERLINE}Configuration files:{ansi.RESET}
 
-    $HOME/.kubemgr/kubemgr.ini: General configuration file.
+    {ansi.BOLD}$HOME/.kubemgr/kubemgr.ini:{ansi.RESET} 
+        General configuration file.
         editor=Absolute path to editor used for Yaml
 
-    $HOME/.kubemgr/clusters.ini: Clusters configuration file.
+    {ansi.BOLD}$HOME/.kubemgr/clusters.ini:{ansi.RESET} 
+        Clusters configuration file.
         [Cluster name enclosed in brackets]
         configfile=[Absolute path to kubeconfig yaml file]
 
-    $HOME/.kubemgr/colors.ini: UI colors and styles.
+    {ansi.BOLD}$HOME/.kubemgr/colors.ini:{ansi.RESET}
+        UI colors and styles.
 """
 
 
@@ -84,8 +99,9 @@ class MainApp(Application):
         self._read_configuration(config_dir)
 
         self._clusters_model = ClustersListModel(self)
-        self._clusters_view = ClusterListView(model=self._clusters_model)
-        self._clusters_view.selectable = True
+        self._clusters_view = ClusterListView(
+            model=self._clusters_model, selectable=True
+        )
         self._nodes_model = NodesListModel(self)
         self._nodes_view = NodesListView(model=self._nodes_model)
         self._pods_model = PodsListModel(self)
@@ -97,11 +113,18 @@ class MainApp(Application):
         self._services_model = ServicesListModel(self)
         self._services_view = ServicesListView(model=self._services_model)
         self._namespaces_model = NamespacesListModel(self)
-        self._namespaces_view = NamespacesListView(model=self._namespaces_model)
+        self._namespaces_view = NamespacesListView(
+            model=self._namespaces_model, selectable=True
+        )
+        self._namespaces_view.set_on_select(self._on_namespace_selected)
         self._configmaps_model = ConfigMapsListModel(self)
         self._configmaps_view = ConfigMapsListView(model=self._configmaps_model)
         self._deployments_model = DeploymentsListModel(self)
         self._deployments_view = DeploymentsListView(model=self._deployments_model)
+        self._daemonsets_model = DaemonSetsListModel(self)
+        self._daemonsets_view = DaemonSetsListView(model=self._daemonsets_model)
+        self._secrets_model = SecretsListModel(self)
+        self._secrets_view = SecretsListView(model=self._secrets_model)
 
         max_height, max_width = ansi.terminal_size()
 
@@ -143,10 +166,31 @@ class MainApp(Application):
         tabs.add_tab("Jobs", self._jobs_view)
         tabs.add_tab("Services", self._services_view)
         tabs.add_tab("Deployments", self._deployments_view)
+        tabs.add_tab("DaemonSets", self._daemonsets_view)
         tabs.add_tab("ConfigMaps", self._configmaps_view)
+        tabs.add_tab("Secrets", self._secrets_view)
         self.add_component(tabs)
 
         self._task_executor.start()
+
+    def _on_namespace_selected(self, item):
+        ns_name = item.name if item.selected else None
+        self._set_namespace_filter(ns_name)
+
+    def _set_namespace_filter(self, namespace):
+        models = [
+            self._pods_model,
+            self._cron_jobs_model,
+            self._jobs_model,
+            self._deployments_model,
+            self._services_model,
+            self._daemonsets_model,
+            self._configmaps_model,
+            self._secrets_model,
+        ]
+        for model in models:
+            model.set_namespace(namespace)
+        self._update_view()
 
     def add_task(self, task):
         self._task_executor.add_task(task)
@@ -175,10 +219,11 @@ class MainApp(Application):
         return self._config
 
     def show_help(self):
+        help_lines = _HELP.split("\n")
         max_height, max_width = ansi.terminal_size()
 
         popup_width = int(max_width * 0.75)
-        popup_height = int(max_height * 0.75)
+        popup_height = min(max_height - 10, len(help_lines))
 
         rect = Rect(
             int((max_width - popup_width) / 2),
@@ -186,9 +231,8 @@ class MainApp(Application):
             popup_width,
             popup_height,
         )
-        text_view = TextView(rect=rect, text=_HELP.split('\n'))
+        text_view = TextView(rect=rect, text=help_lines)
         self.open_popup(text_view)
-
 
     def _read_configuration(self, config_dir):
 
@@ -203,21 +247,27 @@ class MainApp(Application):
         general_config_file = os.path.join(config_dir, "kubemgr.ini")
 
         if os.path.isfile(general_config_file):
-            parser = configparser.ConfigParser()
+            parser = configparser.ConfigParser(default_section="config")
             parser.read(general_config_file)
-            self._config = parser["DEFAULT"]
+            self._config = parser["config"]
 
     def _read_colors_config(self, config_dir):
         colors_config_file = os.path.join(config_dir, "colors.ini")
 
         if os.path.isfile(colors_config_file):
-            parser = configparser.ConfigParser()
+            parser = configparser.ConfigParser(default_section="colors")
             parser.read(colors_config_file)
 
-            for key in parser["DEFAULT"]:
-                color_val = parser["DEFAULT"][key]
+            for key in parser["colors"]:
+                color_val = parser["colors"][key]
                 color = bytes(color_val, "utf-8").decode("unicode_escape")
                 COLORS[key] = color
+        else:
+            with open(colors_config_file, "w") as f:
+                f.write("[colors]\n")
+                for k, v in COLORS.items():
+                    v = v.encode("unicode_escape").decode("utf-8")
+                    f.write(f"{k}={v}\n")
 
     def _read_clusters_config(self, config_dir):
         clusters_config_file = os.path.join(config_dir, "clusters.ini")

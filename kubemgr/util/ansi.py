@@ -1,12 +1,13 @@
 import sys
 import subprocess
 import re
-        
+
 UNDERLINE = "\u001b[4m"
 BOLD = "\u001b[1m"
 UNDERLINE = "\u001b[4m"
 RESET = "\u001b[0m"
 CLRSCR = "\u001b[2J"
+
 
 class UiWriter:
     def __init__(self):
@@ -63,6 +64,7 @@ class UiWriter:
     def __len__(self):
         return _ansi_string_len(self._buffer)
 
+
 def _ansi_string_len(string):
     l = 0
     skip = False
@@ -74,6 +76,7 @@ def _ansi_string_len(string):
         elif not skip:
             l += 1
     return l
+
 
 def begin():
     return UiWriter()
