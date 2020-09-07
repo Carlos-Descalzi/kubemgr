@@ -9,6 +9,7 @@ class Application:
         self._components = []
         self._focused_index = 0
         self._active_popup = None
+        self._popup_closeable = True
         self._active = True
         self._queue = []
 
@@ -107,14 +108,18 @@ class Application:
     def show_help(self):
         pass
 
-    def open_popup(self, view):
+    def open_popup(self, view, closeable=True):
+        max_height, max_width = ansi.terminal_size()
+        view._rect.x = int((max_width - view._rect.width) / 2)
+        view._rect.y = int((max_height - view._rect.height) / 2)
         self._active_popup = view
         self._active_popup.update()
+        self._popup_closeable = closeable
 
     def close_popup(self):
         if self._active_popup:
-            self._active_popup.set_application(None)
-            self._active_popup = None
-
-        ansi.begin().clrscr().put()
-        self._update_view()
+            if self._popup_closeable:
+                self._active_popup.set_application(None)
+                self._active_popup = None
+                ansi.begin().clrscr().put()
+                self._update_view()

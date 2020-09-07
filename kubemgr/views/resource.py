@@ -6,6 +6,50 @@ from abc import ABCMeta, abstractclassmethod
 import yaml
 import tempfile
 import subprocess
+import logging
+import json
+
+class ResourceListModel(AsyncListModel):
+    def __init__(self, application, resource_name):
+        super().__init__(application)
+        self._resource_name = resource_name
+        self._namespace = None
+        
+    def set_namespace(self, namespace):
+        self._namespace = namespace
+
+    def get_api_client_and_resource(self):
+        cluster = self._application.selected_cluster
+        if cluster and cluster.api_client:
+            return cluster.api_client, cluster.get_resource(self._resource_name)
+        return None, None
+
+    def _build_path(self, resource):
+        path = '/api/v1'
+        if self._namespace:
+            path+= f'/namespaces/{self._namespace}'
+        path+=f'/{resource.name}'
+
+        return path
+
+    def fetch_data(self):
+        api_client, resource = self.get_api_client_and_resource()
+
+        if api_client:
+            path = self._build_path(resource)
+            logging.info(path)
+            result = api_client.call_api(
+                path,
+                'GET',
+                _preload_content=False
+            )
+            response,status_code,_ = result
+            if status_code == 200:
+                self._items = json.loads(response.data.decode())['items']
+            else:
+                logging.error('Unable to get data: {status_code} - {response.data}')
+        else:
+            self._items = []
 
 
 class ResourceListView(ListView, metaclass=ABCMeta):
@@ -50,7 +94,7 @@ class ResourceListView(ListView, metaclass=ABCMeta):
 
     def _show_selected(self):
         current = self.current_item
-        result = yaml.dump(current.to_dict(), Dumper=yaml.SafeDumper).split("\n")
+        result = yaml.dump(current, Dumper=yaml.SafeDumper).split("\n")
 
         self._show_text(result)
 
@@ -68,3 +112,7 @@ class ResourceListView(ListView, metaclass=ABCMeta):
         )
         text_view = TextView(rect=rect, text=text)
         self.application.open_popup(text_view)
+
+class DefaultResourceListView(ResourceListView):
+    def do_render_item(self, item, width):
+        return item['metadata']['name']

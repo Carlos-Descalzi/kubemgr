@@ -15,10 +15,9 @@ from .views.cronjobs import CronJobsListModel, CronJobsListView
 from .views.jobs import JobsListModel, JobsListView
 from .views.namespaces import NamespacesListModel, NamespacesListView
 from .views.services import ServicesListModel, ServicesListView
-from .views.configmaps import ConfigMapsListModel, ConfigMapsListView
 from .views.deployments import DeploymentsListModel, DeploymentsListView
 from .views.daemonsets import DaemonSetsListModel, DaemonSetsListView
-from .views.secrets import SecretsListModel, SecretsListView
+from .views.resource import ResourceListModel, DefaultResourceListView
 from kubernetes import client, config
 from kubernetes.client import configuration
 from kubernetes.config.kube_config import KubeConfigLoader
@@ -81,12 +80,29 @@ class Cluster:
         self.config_file = config_file
         self.config = config
         self._api_client = api_client
+        self._connection_error = None
 
     @property
     def api_client(self):
         if not self._api_client:
-            self._api_client = client.ApiClient(self.config)
+            try:
+                self._api_client = client.ApiClient(self.config)
+                core_api = client.CoreV1Api(self._api_client)
+                self._api_resources = core_api.get_api_resources().resources
+                logging.info(str(self._api_resources))
+            except Exception as e:
+                self._connection_error = e
+                logging.error(e)
         return self._api_client
+
+    def get_resource(self, resource_name):
+        found = list(
+            filter(
+                lambda x:x.kind == resource_name,
+                self._api_resources
+            )
+        )
+        return found[0] if found else None
 
 
 class MainApp(Application):
@@ -117,14 +133,14 @@ class MainApp(Application):
             model=self._namespaces_model, selectable=True
         )
         self._namespaces_view.set_on_select(self._on_namespace_selected)
-        self._configmaps_model = ConfigMapsListModel(self)
-        self._configmaps_view = ConfigMapsListView(model=self._configmaps_model)
+        self._configmaps_model = ResourceListModel(self,'ConfigMap')
+        self._configmaps_view = DefaultResourceListView(model=self._configmaps_model)
         self._deployments_model = DeploymentsListModel(self)
         self._deployments_view = DeploymentsListView(model=self._deployments_model)
         self._daemonsets_model = DaemonSetsListModel(self)
         self._daemonsets_view = DaemonSetsListView(model=self._daemonsets_model)
-        self._secrets_model = SecretsListModel(self)
-        self._secrets_view = SecretsListView(model=self._secrets_model)
+        self._secrets_model = ResourceListModel(self,'Secret')
+        self._secrets_view = DefaultResourceListView(model=self._secrets_model)
 
         max_height, max_width = ansi.terminal_size()
 
@@ -225,12 +241,7 @@ class MainApp(Application):
         popup_width = int(max_width * 0.75)
         popup_height = min(max_height - 10, len(help_lines))
 
-        rect = Rect(
-            int((max_width - popup_width) / 2),
-            int((max_height - popup_height) / 2),
-            popup_width,
-            popup_height,
-        )
+        rect = Rect(0,0, popup_width, popup_height)
         text_view = TextView(rect=rect, text=help_lines)
         self.open_popup(text_view)
 
