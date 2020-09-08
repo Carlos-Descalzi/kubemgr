@@ -20,6 +20,8 @@ import tty
 import sys
 import atexit
 from collections import defaultdict
+import tempfile
+import subprocess
 from .texts import CLUSTERS_CONFIG_TEMPLATE, KUBEMGR_DEFAUL_CONFIG_TEMPLATE, HELP_CONTENTS
 
 class TabInfo:
@@ -32,9 +34,9 @@ class MainApp(Application):
     def __init__(self, config_dir):
         super().__init__()
         self._task_executor = TaskExecutor()
-        self._clusters = {}
+        self._clusters = []
         self._config = {}
-        self._selected_cluster_name = None
+        self._selected_cluster_index = -1
         self._read_configuration(config_dir)
 
         self._clusters_model = ClustersListModel(self)
@@ -124,24 +126,14 @@ class MainApp(Application):
     def add_task(self, task):
         self._task_executor.add_task(task)
 
-    def set_selected_cluster_name(self, cluster_name):
-        self._selected_cluster_name = cluster_name
-
-    def get_selected_cluster_name(self):
-        return self._selected_cluster_name
-
-    selected_cluster_name = property(
-        get_selected_cluster_name, set_selected_cluster_name
-    )
-
     @property
     def clusters(self):
         return self._clusters
 
     @property
     def selected_cluster(self):
-        if self._selected_cluster_name:
-            return self._clusters[self._selected_cluster_name]
+        if self._selected_cluster_index !=-1:
+            return self._clusters[self._selected_cluster_index]
         return None
 
     def get_general_config(self):
@@ -205,6 +197,31 @@ class MainApp(Application):
         text_view = TextView(rect=rect, text=text)
         self.open_popup(text_view)
 
+    def show_file(self, text):
+        viewer = self.get_general_config().get('viewer')
+
+        if viewer:
+            tf = tempfile.NamedTemporaryFile(mode="w+", delete=False)
+            tf.write(text)
+            tf.flush()
+            subprocess.run([viewer,tf.name])
+        else:
+            self.show_text_popup(text.split('\n'))
+
+    def edit_file(self, text):
+        editor = self.get_general_config().get("editor")
+        if editor:
+            tf = tempfile.NamedTemporaryFile(mode="w+", delete=False)
+            tf.write(text)
+            tf.flush()
+            result = subprocess.run([editor, tf.name])
+            if result.returncode == 0:
+                tf.seek(0)
+                new_text = tf.read()
+                if new_text != text:
+                    return new_text
+        return None
+
     def _read_configuration(self, config_dir):
         if not os.path.isdir(config_dir):
             os.makedirs(config_dir)
@@ -251,12 +268,12 @@ class MainApp(Application):
 
             for section in parser.sections():
                 config_file = parser[section]["configfile"]
-                self._clusters[section] = Cluster(
-                    config_file, self._read_kube_config(config_file)
-                )
+                self._clusters.append(Cluster(
+                    section, config_file, self._read_kube_config(config_file)
+                ))
 
             if self._clusters:
-                self._selected_cluster_name = next(iter(self._clusters.keys()))
+                self._selected_cluster_index = 0
         else:
             with open(config_file, "w") as f:
                 f.write(CLUSTERS_CONFIG_TEMPLATE)
@@ -268,11 +285,11 @@ class MainApp(Application):
             loader.load_and_set(config)
             return config
 
-    def _get_api_client(self, cluster_name):
-        cluster = self._clusters[cluster_name]
-        if not cluster.api_client:
-            cluster.api_client = client.ApiClient(cluster["config"])
-        return cluster.api_client
+    #def _get_api_client(self, cluster_name):
+    #    cluster = self._clusters[cluster_name]
+    #    if not cluster.api_client:
+    #        cluster.api_client = client.ApiClient(cluster["config"])
+    #    return cluster.api_client
 
 
 if __name__ == "__main__":

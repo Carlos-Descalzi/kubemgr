@@ -120,6 +120,8 @@ class ResourceListView(ListView):
             self._show_selected()
         elif input_key == ord("e"):
             self._edit_selected()
+        elif input_key == ord("d"):
+            self._delete_selected()
         elif input_key in self._key_handlers:
             self._key_handlers[input_key]()
         else:
@@ -130,28 +132,22 @@ class ResourceListView(ListView):
         if self.can_edit():
             current = self.current_item
             if current:
-                editor = self._model._application.get_general_config().get("editor")
-                if editor:
-                    self._edit_item(current, editor)
-
-    def _edit_item(self, item, editor):
-        contents = yaml.dump(item, Dumper=yaml.SafeDumper)
-        tf = tempfile.NamedTemporaryFile(mode="w+", delete=False)
-        tf.write(contents)
-        tf.flush()
-        result = subprocess.run([editor, tf.name])
-        if result.returncode == 0:
-            tf.seek(0)
-            new_contents = tf.read()
-            if contents != new_contents:
-                logging.info(f'changed\n{contents}\n\n{new_contents}')
-                new_yaml = yaml.load(io.StringIO(new_contents), Loader=yaml.SafeLoader)
-                json_content = json.dumps(new_yaml)
-                self._model.update(item, json_content)
+                self._edit_item(current)
 
     def _show_selected(self):
         current = self.current_item
         if current:
-            result = yaml.dump(current, Dumper=yaml.SafeDumper).split("\n")
-            self._application.show_text_popup(result)
+            result = yaml.dump(current, Dumper=yaml.SafeDumper)
+            self._application.show_file(result)
 
+    def _delete_selected(self):
+        # TODO Implement it
+        self._application.show_text_popup(["\n"]*3 + ["NOT IMPLEMENTED YET!"] + ["\n"] * 3)
+
+    def _edit_item(self, item):
+        contents = yaml.dump(item, Dumper=yaml.SafeDumper)
+        new_contents = self._application.edit_file(contents)
+        if new_contents:
+            new_yaml = yaml.load(io.StringIO(new_contents), Loader=yaml.SafeLoader)
+            json_content = json.dumps(new_yaml)
+            self._model.update(item, json_content)

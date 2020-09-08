@@ -5,12 +5,17 @@ from kubernetes.client.rest import ApiException
 import json
 
 class Cluster:
-    def __init__(self, config_file, config):
+    def __init__(self, name, config_file, config):
+        self.name = name
         self.config_file = config_file
         self.config = config
         self._api_client = None
         self._connection_error = None
         self._resources = {}
+
+    @property
+    def connected(self):
+        return self._api_client is not None
 
     @property
     def api_client(self):
