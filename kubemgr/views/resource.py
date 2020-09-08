@@ -2,6 +2,7 @@ from kubemgr.util.ui import Rect, TextView, ListView
 from kubernetes import client
 from ..util import ansi
 from .util import AsyncListModel
+from .format import Formatter
 from abc import ABCMeta, abstractclassmethod
 import yaml
 import tempfile
@@ -88,6 +89,10 @@ class ResourceListView(ListView):
     def __init__(self, rect=None, model=None, selectable=False):
         super().__init__(rect, model, selectable)
         self._key_handlers = {}
+        self._formatter = None
+
+    def set_item_format(self, item_format):
+        self._formatter = Formatter(item_format) if item_format else None
 
     def set_key_handler(self, key, handler):
         self._key_handlers[key] = handler
@@ -102,6 +107,8 @@ class ResourceListView(ListView):
         return str(buff.write(self.do_render_item(item, width)).reset())
 
     def do_render_item(self, item, width):
+        if self._formatter:
+            return self._formatter.format(item, width)
         return item['metadata']['name']
 
     def can_edit(self):

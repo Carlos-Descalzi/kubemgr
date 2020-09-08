@@ -60,9 +60,13 @@ class MainApp(Application):
         tabs_config = self.get_tabs_config()
 
         for tabname, config in tabs_config.items():
-            model = ResourceListModel(self,config['kind'],config['group_version'])
-            view = ResourceListView(model=model)
-            self._custom_tabs.append(TabInfo(config['title'],model, view))
+            if tabname != 'podstab':
+                model = ResourceListModel(self,config['kind'],config['group_version'])
+                view = ResourceListView(model=model)
+                view.set_item_format(config.get('format'))
+                self._custom_tabs.append(TabInfo(config['title'],model, view))
+            else:
+                self._pods_view.set_item_format(config.get('format'))
 
         max_height, max_width = ansi.terminal_size()
 

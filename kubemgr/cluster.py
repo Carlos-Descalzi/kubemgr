@@ -66,7 +66,6 @@ class Cluster:
         return found[0] if found else None
 
     def get_resource(self, api_group,resource_name):
-        #logging.info(self._resources[api_group])
         found = list(
             filter(
                 lambda x:x['kind'] == resource_name,
