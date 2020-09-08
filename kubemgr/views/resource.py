@@ -9,6 +9,7 @@ import subprocess
 import logging
 import json
 import traceback
+import io
 
 _DEFAULT_PATH_PREFIX='api/v1'
 
@@ -33,17 +34,35 @@ class ResourceListModel(AsyncListModel):
                     +traceback.format_exc()))
         return None, None
 
-    def _build_path(self, resource):
+    def _build_path(self, resource, name=None, namespace=None):
         resource_name = resource['name']
         path = '/'
         if self._api_group != _DEFAULT_PATH_PREFIX:
             path+='apis/'
         path += self._api_group
-        if self._namespace and resource['namespaced']:
-            path+= f'/namespaces/{self._namespace}'
+        ns = namespace or self._namespace
+        if ns and resource['namespaced']:
+            path+= f'/namespaces/{ns}'
         path+=f'/{resource_name}'
+        if name:
+            path+=f'/{name}'
 
         return path
+
+    def update(self, item, contents):
+        api_client, resource = self.get_api_client_and_resource()
+
+        if api_client:
+            path = self._build_path(resource, item['metadata']['name'],item['metadata']['namespace'])
+            logging.info(path)
+            logging.info(contents)
+            response, status, _ = api_client.call_api(
+                path,
+                'PATCH',
+                body=contents,
+                header_params={'Content-Type':'application/json-patch+json'}
+            )
+            logging.info(f'{response},{status}')
 
     def fetch_data(self):
         api_client, resource = self.get_api_client_and_resource()
@@ -119,8 +138,9 @@ class ResourceListView(ListView):
             new_contents = tf.read()
             if contents != new_contents:
                 logging.info(f'changed\n{contents}\n\n{new_contents}')
-                #new_contents = yaml.load(tf, Loader=yaml.SafeLoader)
-                print('changed')
+                new_yaml = yaml.load(io.StringIO(new_contents), Loader=yaml.SafeLoader)
+                json_content = json.dumps(new_yaml)
+                self._model.update(item, json_content)
 
     def _show_selected(self):
         current = self.current_item
