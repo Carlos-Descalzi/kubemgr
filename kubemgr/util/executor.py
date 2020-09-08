@@ -1,6 +1,7 @@
 import threading
 import time
-
+import logging
+import traceback
 
 class TaskExecutor:
     def __init__(self):
@@ -20,5 +21,5 @@ class TaskExecutor:
                 try:
                     task()
                 except Exception as e:
-                    print(e)
+                    logging.error(str(e)+str(traceback.format_exc()))
             time.sleep(0.5)

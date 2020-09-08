@@ -8,11 +8,15 @@ import tempfile
 import subprocess
 import logging
 import json
+import traceback
+
+_DEFAULT_PATH_PREFIX='api/v1'
 
 class ResourceListModel(AsyncListModel):
-    def __init__(self, application, resource_name):
+    def __init__(self, application, resource_name, api_group=_DEFAULT_PATH_PREFIX):
         super().__init__(application)
         self._resource_name = resource_name
+        self._api_group = api_group
         self._namespace = None
         
     def set_namespace(self, namespace):
@@ -21,14 +25,23 @@ class ResourceListModel(AsyncListModel):
     def get_api_client_and_resource(self):
         cluster = self._application.selected_cluster
         if cluster and cluster.api_client:
-            return cluster.api_client, cluster.get_resource(self._resource_name)
+            try:
+                return cluster.api_client, cluster.get_resource(self._api_group, self._resource_name)
+            except Exception as e:
+                logging.error((
+                    f'unable to get client, resource for {self._api_group}, {self._resource_name} - {e}'
+                    +traceback.format_exc()))
         return None, None
 
     def _build_path(self, resource):
-        path = '/api/v1'
-        if self._namespace:
+        resource_name = resource['name']
+        path = '/'
+        if self._api_group != _DEFAULT_PATH_PREFIX:
+            path+='apis/'
+        path += self._api_group
+        if self._namespace and resource['namespaced']:
             path+= f'/namespaces/{self._namespace}'
-        path+=f'/{resource.name}'
+        path+=f'/{resource_name}'
 
         return path
 
@@ -37,7 +50,6 @@ class ResourceListModel(AsyncListModel):
 
         if api_client:
             path = self._build_path(resource)
-            logging.info(path)
             result = api_client.call_api(
                 path,
                 'GET',
@@ -52,7 +64,15 @@ class ResourceListModel(AsyncListModel):
             self._items = []
 
 
-class ResourceListView(ListView, metaclass=ABCMeta):
+class ResourceListView(ListView):
+
+    def __init__(self, rect=None, model=None, selectable=False):
+        super().__init__(rect, model, selectable)
+        self._key_handlers = {}
+
+    def set_key_handler(self, key, handler):
+        self._key_handlers[key] = handler
+
     def render_item(self, item, current, selected):
         width = self._rect.width
         buff = ansi.begin()
@@ -62,9 +82,8 @@ class ResourceListView(ListView, metaclass=ABCMeta):
 
         return str(buff.write(self.do_render_item(item, width)).reset())
 
-    @abstractclassmethod
     def do_render_item(self, item, width):
-        pass
+        return item['metadata']['name']
 
     def can_edit(self):
         return True
@@ -75,44 +94,29 @@ class ResourceListView(ListView, metaclass=ABCMeta):
             self._show_selected()
         elif input_key == ord("e"):
             self._edit_selected()
+        elif input_key in self._key_handlers:
+            self._key_handlers[input_key]()
         else:
             super().on_key_press(input_key)
 
     def _edit_selected(self):
 
         if self.can_edit():
-            editor = self._model._application.get_config().get("editor")
-            if editor:
-                current = self.current_item
-                tf = tempfile.NamedTemporaryFile(mode="w+", delete=False)
-                yaml.dump(current.to_dict(), tf, Dumper=yaml.SafeDumper)
-                tf.flush()
-                result = subprocess.run([editor, tf.name])
-                if result.returncode == 0:
-                    tf.seek(0)
-                    new_contents = yaml.load(tf, Loader=yaml.SafeLoader)
+            current = self.current_item
+            if current:
+                editor = self._model._application.get_config().get("editor")
+                if editor:
+                    tf = tempfile.NamedTemporaryFile(mode="w+", delete=False)
+                    yaml.dump(current.to_dict(), tf, Dumper=yaml.SafeDumper)
+                    tf.flush()
+                    result = subprocess.run([editor, tf.name])
+                    if result.returncode == 0:
+                        tf.seek(0)
+                        new_contents = yaml.load(tf, Loader=yaml.SafeLoader)
 
     def _show_selected(self):
         current = self.current_item
-        result = yaml.dump(current, Dumper=yaml.SafeDumper).split("\n")
+        if current:
+            result = yaml.dump(current, Dumper=yaml.SafeDumper).split("\n")
+            self._application.show_text_popup(result)
 
-        self._show_text(result)
-
-    def _show_text(self, text):
-        max_height, max_width = ansi.terminal_size()
-
-        popup_width = int(max_width * 0.75)
-        popup_height = int(max_height * 0.75)
-
-        rect = Rect(
-            int((max_width - popup_width) / 2),
-            int((max_height - popup_height) / 2),
-            popup_width,
-            popup_height,
-        )
-        text_view = TextView(rect=rect, text=text)
-        self.application.open_popup(text_view)
-
-class DefaultResourceListView(ResourceListView):
-    def do_render_item(self, item, width):
-        return item['metadata']['name']
