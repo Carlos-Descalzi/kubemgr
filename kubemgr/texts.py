@@ -10,6 +10,12 @@ KUBEMGR_DEFAUL_CONFIG_TEMPLATE = """
 [general]
 editor=/usr/bin/vim
 [tabs]
+# Fixed tab, allows basic customizing
+# Uses basic python formatting with some exceptions.
+# MAX is replaced by the available width.
+podstab.format=item.metadata.name:MAX,item.status.phase:>10
+
+# Custom tabs
 tab1.title=Cronjobs
 tab1.kind=CronJob
 tab1.group_version=batch/v1beta1
