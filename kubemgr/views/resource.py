@@ -104,15 +104,23 @@ class ResourceListView(ListView):
         if self.can_edit():
             current = self.current_item
             if current:
-                editor = self._model._application.get_config().get("editor")
+                editor = self._model._application.get_general_config().get("editor")
                 if editor:
-                    tf = tempfile.NamedTemporaryFile(mode="w+", delete=False)
-                    yaml.dump(current.to_dict(), tf, Dumper=yaml.SafeDumper)
-                    tf.flush()
-                    result = subprocess.run([editor, tf.name])
-                    if result.returncode == 0:
-                        tf.seek(0)
-                        new_contents = yaml.load(tf, Loader=yaml.SafeLoader)
+                    self._edit_item(current, editor)
+
+    def _edit_item(self, item, editor):
+        contents = yaml.dump(item, Dumper=yaml.SafeDumper)
+        tf = tempfile.NamedTemporaryFile(mode="w+", delete=False)
+        tf.write(contents)
+        tf.flush()
+        result = subprocess.run([editor, tf.name])
+        if result.returncode == 0:
+            tf.seek(0)
+            new_contents = tf.read()
+            if contents != new_contents:
+                logging.info(f'changed\n{contents}\n\n{new_contents}')
+                #new_contents = yaml.load(tf, Loader=yaml.SafeLoader)
+                print('changed')
 
     def _show_selected(self):
         current = self.current_item
