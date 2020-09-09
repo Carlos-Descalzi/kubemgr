@@ -145,10 +145,32 @@ class ResourceListView(ListView):
             self._application.show_file(result, "yaml")
 
     def _delete_selected(self):
-        # TODO Implement it
-        self._application.show_text_popup(
-            ["\n"] * 3 + ["NOT IMPLEMENTED YET!"] + ["\n"] * 3
+        self._application.show_question_dialog(
+            "Warning",
+            "Sure you want to delete the resource?",
+            [
+                ("y", "Yes", self._on_delete_confirm),
+                ("n", "No", self._on_delete_cancel),
+            ],
         )
+
+    def _on_delete_confirm(self):
+        item = self.current_item
+
+        def do_delete():
+            logging.info("Deleting resource")
+            api_client, resource = self._model.get_api_client_and_resource()
+            path = self._model._build_path(
+                resource, item["metadata"]["name"], item["metadata"]["namespace"]
+            )
+            response = api_client.call_api(path, "DELETE")
+            logging.info(response)
+            self.update()
+
+        self._application.add_task(do_delete, False)
+
+    def _on_delete_cancel(self):
+        pass
 
     def _edit_item(self, item):
         contents = yaml.dump(item, Dumper=yaml.SafeDumper)

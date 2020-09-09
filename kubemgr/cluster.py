@@ -6,7 +6,8 @@ import json
 
 
 class Cluster:
-    def __init__(self, name, config_file, config):
+    def __init__(self, application, name, config_file, config):
+        self._application = application
         self.name = name
         self.config_file = config_file
         self.config = config
@@ -24,27 +25,41 @@ class Cluster:
             self._create_connection()
         return self._api_client
 
+    def disconnect(self):
+        if self._api_client:
+            self._api_client.close()
+            self._resources = {}
+
+    def connect(self, on_success=None, on_error=None):
+        def _connect():
+            try:
+                self._create_connection()
+                if on_success:
+                    on_success(self)
+            except Exception as e:
+                logging.error(e)
+                if on_error:
+                    on_error(self, e)
+
+        self._application.add_task(_connect, False)
+
     def _create_connection(self):
-        try:
-            api_client = client.ApiClient(self.config)
-            apis = client.ApisApi(api_client).get_api_versions()
-            for api_group in apis.groups:
-                for version in api_group.versions:
-                    api_group_version = version.group_version
-                    logging.info(api_group)
-                    try:
-                        self._resources[api_group_version] = self._get_resources(
-                            api_client, f"/apis/{api_group_version}/"
-                        )
-                    except ApiException:
-                        logging.info(f"No info for api group {api_group_version}")
+        api_client = client.ApiClient(self.config)
+        apis = client.ApisApi(api_client).get_api_versions()
+        for api_group in apis.groups:
+            for version in api_group.versions:
+                api_group_version = version.group_version
+                logging.info(api_group)
+                try:
+                    self._resources[api_group_version] = self._get_resources(
+                        api_client, f"/apis/{api_group_version}/"
+                    )
+                except ApiException:
+                    logging.info(f"No info for api group {api_group_version}")
 
-            self._resources["api/v1"] = self._get_resources(api_client, "/api/v1/")
-            self._log_resource_types(self._resources)
-            self._api_client = api_client
-
-        except Exception as e:
-            logging.error(str(e) + str(traceback.format_exc()))
+        self._resources["api/v1"] = self._get_resources(api_client, "/api/v1/")
+        self._log_resource_types(self._resources)
+        self._api_client = api_client
 
     def _get_resources(self, api_client, path):
         response, status, _ = api_client.call_api(path, "GET", _preload_content=False)
@@ -56,9 +71,9 @@ class Cluster:
             for i in rl:
                 logging.info(f"\t{i['name']},{i['kind']}")
 
-    def get_api_group(self, name):
-        found = list(filter(lambda x: x.name == name, self._apis))
-        return found[0] if found else None
+    # def get_api_group(self, name):
+    #    found = list(filter(lambda x: x.name == name, self._apis))
+    #    return found[0] if found else None
 
     def get_resource(self, api_group, resource_name):
         found = list(

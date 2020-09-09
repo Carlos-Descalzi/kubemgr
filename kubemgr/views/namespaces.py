@@ -16,7 +16,7 @@ class NsItem:
 
     @property
     def name(self):
-        return self.namespace['metadata']['name']
+        return self.namespace["metadata"]["name"]
 
     def toggle(self):
         self.selected = not self.selected
@@ -34,18 +34,15 @@ class NamespacesListModel(AsyncListModel):
                 api_client = cluster.api_client
 
                 response, status, _ = cluster.api_client.call_api(
-                    '/api/v1/namespaces',
-                    'GET',
-                    _preload_content=False
+                    "/api/v1/namespaces", "GET", _preload_content=False
                 )
-                namespaces = json.loads(response.data.decode())['items']
+                namespaces = json.loads(response.data.decode())["items"]
                 self._items = [NsItem(i) for i in namespaces]
         else:
             self._items = []
 
 
 class NamespacesListView(ResourceListView):
-
     @property
     def current_item(self):
         item = super().current_item
@@ -54,8 +51,8 @@ class NamespacesListView(ResourceListView):
     def do_render_item(self, item, width):
         width = self._rect.width
         name = item.name[0 : width - 4]
-        name += " " * max(0,((width - 4) - len(name)))
-        name += ("(F)" if item.selected else " ")
+        name += " " * max(0, ((width - 4) - len(name)))
+        name += "(F)" if item.selected else " "
         return name
 
     def _select(self, index):

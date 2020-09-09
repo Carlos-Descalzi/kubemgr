@@ -1,3 +1,4 @@
+import logging
 from kubemgr.util import ansi, kbd
 import time
 import sys
@@ -52,7 +53,7 @@ class Application:
             try:
                 task()
             except Exception as e:
-                print(e)
+                logging.error(e)
 
     def queue_task(self, task):
         if not self._active_popup:

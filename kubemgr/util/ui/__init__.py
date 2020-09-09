@@ -6,3 +6,4 @@ from .list import ListModel, ListView
 from .tabbed import TabbedView
 from .text import TextView
 from .file import FileChooser
+from .dialog import QuestionDialog

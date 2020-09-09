@@ -14,6 +14,7 @@ from .util.ui import (
     TabbedView,
     TextView,
     FileChooser,
+    QuestionDialog,
 )
 from .util.executor import TaskExecutor
 from .views.clusters import ClusterListView, ClustersListModel
@@ -57,6 +58,7 @@ class MainApp(Application):
         self._clusters_view = ClusterListView(
             model=self._clusters_model, selectable=True
         )
+        self._clusters_view.set_on_select(self._on_cluster_selected)
         self._nodes_model = ResourceListModel(self, "Node")
         self._nodes_view = ResourceListView(model=self._nodes_model)
         self._nodes_view.set_key_handler(ord("l"), self._show_labels)
@@ -139,6 +141,11 @@ class MainApp(Application):
         )
         self.open_popup(chooser)
 
+    def _on_cluster_selected(self, cluster):
+        if not cluster.connected:
+            cluster.connect()
+        pass
+
     def _on_namespace_selected(self, item):
         ns_name = item.name if item.selected else None
         self._set_namespace_filter(ns_name)
@@ -149,8 +156,8 @@ class MainApp(Application):
             model.set_namespace(namespace)
         self._update_view()
 
-    def add_task(self, task):
-        self._task_executor.add_task(task)
+    def add_task(self, task, loop=True):
+        self._task_executor.add_task(task, loop)
 
     @property
     def clusters(self):
@@ -205,6 +212,18 @@ class MainApp(Application):
             + [""]
         )
         self.show_text_popup(labels_text)
+
+    def show_question_dialog(self, title, message, options):
+        def _wrap_op(f):
+            def call():
+                f()
+                self.close_popup()
+
+            return call
+
+        options = [(k, l, _wrap_op(f)) for k, l, f in options]
+        dialog = QuestionDialog(title, message, options)
+        self.open_popup(dialog)
 
     def show_text_popup(self, text):
         max_height, max_width = ansi.terminal_size()
@@ -293,10 +312,15 @@ class MainApp(Application):
             parser = configparser.ConfigParser()
             parser.read(clusters_config_file)
 
-            for section in parser.sections():
-                config_file = parser[section]["configfile"]
+            for cluster_name in parser.sections():
+                config_file = parser[cluster_name]["configfile"]
                 self._clusters.append(
-                    Cluster(section, config_file, self._read_kube_config(config_file))
+                    Cluster(
+                        self,
+                        cluster_name,
+                        config_file,
+                        self._read_kube_config(config_file),
+                    )
                 )
 
             if self._clusters:
