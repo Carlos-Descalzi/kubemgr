@@ -18,6 +18,11 @@ COLORS = {
     "tabbedview.focused.selected.fg": "\u001b[38;5;255m\u001b[1m",
     "textview.bg": "\u001b[48;5;236m",
     "textview.fg": "\u001b[38;5;255m",
+    "filechooser.header.bg": "\u001b[48;5;241m",
+    "filechooser.header.fg": "\u001b[38;5;255m\u001b[1m",
+    "filechooser.footer.bg": "\u001b[48;5;236m",
+    "filechooser.footer.fg": "\u001b[38;5;255m",
+    "filechooser.bg": "\u001b[48;5;0m",
 }
 
 

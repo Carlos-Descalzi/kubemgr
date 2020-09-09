@@ -5,7 +5,7 @@ from ..util import ansi
 class ClustersListModel(ListModel):
     def __init__(self, application):
         self._application = application
-        self._clusters = sorted(self._application.clusters,key=lambda x:x.name)
+        self._clusters = sorted(self._application.clusters, key=lambda x: x.name)
 
     def get_item_count(self):
         return len(self._clusters)
@@ -20,10 +20,10 @@ class ClusterListView(ListView):
         if self.focused and current:
             buff.underline()
         if selected:
-            buff.writefill(f"<{item.name}>",self._rect.width-4)
+            buff.writefill(f"<{item.name}>", self._rect.width - 4)
         else:
-            buff.writefill(f" {item.name} ",self._rect.width-4)
+            buff.writefill(f" {item.name} ", self._rect.width - 4)
         if item.connected:
-            buff.write('(C)')
+            buff.write("(C)")
         buff.reset()
         return str(buff)

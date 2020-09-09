@@ -6,7 +6,15 @@ import time
 import configparser
 import yaml
 from .util import ansi
-from .util.ui import COLORS, Application, Rect, TitledView, TabbedView, TextView, FileChooser
+from .util.ui import (
+    COLORS,
+    Application,
+    Rect,
+    TitledView,
+    TabbedView,
+    TextView,
+    FileChooser,
+)
 from .util.executor import TaskExecutor
 from .views.clusters import ClusterListView, ClustersListModel
 from .views.namespaces import NamespacesListModel, NamespacesListView
@@ -22,13 +30,19 @@ import atexit
 from collections import defaultdict
 import tempfile
 import subprocess
-from .texts import CLUSTERS_CONFIG_TEMPLATE, KUBEMGR_DEFAUL_CONFIG_TEMPLATE, HELP_CONTENTS
+from .texts import (
+    CLUSTERS_CONFIG_TEMPLATE,
+    KUBEMGR_DEFAUL_CONFIG_TEMPLATE,
+    HELP_CONTENTS,
+)
+
 
 class TabInfo:
     def __init__(self, title, model, view):
         self.title = title
         self.model = model
         self.view = view
+
 
 class MainApp(Application):
     def __init__(self, config_dir):
@@ -43,9 +57,9 @@ class MainApp(Application):
         self._clusters_view = ClusterListView(
             model=self._clusters_model, selectable=True
         )
-        self._nodes_model = ResourceListModel(self,'Node')
+        self._nodes_model = ResourceListModel(self, "Node")
         self._nodes_view = ResourceListView(model=self._nodes_model)
-        self._nodes_view.set_key_handler(ord('l'),self._show_labels)
+        self._nodes_view.set_key_handler(ord("l"), self._show_labels)
 
         self._namespaces_model = NamespacesListModel(self)
         self._namespaces_view = NamespacesListView(
@@ -53,22 +67,22 @@ class MainApp(Application):
         )
         self._namespaces_view.set_on_select(self._on_namespace_selected)
 
-        self._pods_model = ResourceListModel(self,'Pod')
+        self._pods_model = ResourceListModel(self, "Pod")
         self._pods_view = ResourceListView(model=self._pods_model)
-        self._pods_view.set_key_handler(ord('l'),self._show_pod_logs)
-        
+        self._pods_view.set_key_handler(ord("l"), self._show_pod_logs)
+
         self._custom_tabs = []
 
         tabs_config = self.get_tabs_config()
 
         for tabname, config in tabs_config.items():
-            if tabname != 'podstab':
-                model = ResourceListModel(self,config['kind'],config['group_version'])
+            if tabname != "podstab":
+                model = ResourceListModel(self, config["kind"], config["group_version"])
                 view = ResourceListView(model=model)
-                view.set_item_format(config.get('format'))
-                self._custom_tabs.append(TabInfo(config['title'],model, view))
+                view.set_item_format(config.get("format"))
+                self._custom_tabs.append(TabInfo(config["title"], model, view))
             else:
-                self._pods_view.set_item_format(config.get('format'))
+                self._pods_view.set_item_format(config.get("format"))
 
         max_height, max_width = ansi.terminal_size()
 
@@ -113,7 +127,7 @@ class MainApp(Application):
         self._task_executor.start()
 
     def on_key_press(self, input_key):
-        if input_key == ord('c'):
+        if input_key == ord("c"):
             self._load_file()
             return True
 
@@ -121,11 +135,9 @@ class MainApp(Application):
 
     def _load_file(self):
         chooser = FileChooser(
-            rect=Rect(width=70,height=20),
-            file_filter=lambda p,f: '.yaml' in f
+            rect=Rect(width=70, height=20), file_filter=lambda p, f: ".yaml" in f
         )
         self.open_popup(chooser)
-
 
     def _on_namespace_selected(self, item):
         ns_name = item.name if item.selected else None
@@ -146,18 +158,18 @@ class MainApp(Application):
 
     @property
     def selected_cluster(self):
-        if self._selected_cluster_index !=-1:
+        if self._selected_cluster_index != -1:
             return self._clusters[self._selected_cluster_index]
         return None
 
     def get_general_config(self):
-        return self._config['general']
+        return self._config["general"]
 
     def get_tabs_config(self):
         config = defaultdict(dict)
-        tabs_config = self._config['tabs']
+        tabs_config = self._config["tabs"]
         for key in tabs_config:
-            tabname, entry = key.split('.')
+            tabname, entry = key.split(".")
             config[tabname][entry] = tabs_config[key]
         return config
 
@@ -167,31 +179,29 @@ class MainApp(Application):
     def _show_pod_logs(self):
         current = self._pods_view.current_item
 
-        name = current['metadata']['name']
-        namespace = current['metadata']['namespace']
+        name = current["metadata"]["name"]
+        namespace = current["metadata"]["namespace"]
 
         cluster = self.selected_cluster
 
         if cluster:
             api = cluster.api_client
-            logs, _,_ = api.call_api(
-                f'/api/v1/namespaces/{namespace}/pods/{name}/log', 
-                'GET',
-                response_type='str',
-                _preload_content=True
+            logs, _, _ = api.call_api(
+                f"/api/v1/namespaces/{namespace}/pods/{name}/log",
+                "GET",
+                response_type="str",
+                _preload_content=True,
             )
 
-        self.show_text_popup(logs.split('\n'))
+        self.show_text_popup(logs.split("\n"))
 
     def _show_labels(self):
         current = self._nodes_view.current_item
-        labels = current['metadata']['labels']
-        name = current['metadata']['name']
+        labels = current["metadata"]["labels"]
+        name = current["metadata"]["name"]
         labels_text = (
-            [f"Labels for node {name}",
-            "======================",
-            ""] 
-            + [f"{k:50} : {v}" for k, v in labels.items()] 
+            [f"Labels for node {name}", "======================", ""]
+            + [f"{k:50} : {v}" for k, v in labels.items()]
             + [""]
         )
         self.show_text_popup(labels_text)
@@ -212,13 +222,13 @@ class MainApp(Application):
         self.open_popup(text_view)
 
     def show_file(self, text, format_hint=None):
-        viewer = self.get_general_config().get('viewer')
+        viewer = self.get_general_config().get("viewer")
 
         if viewer:
             tf = self._make_tempfile(text, format_hint)
-            subprocess.run([viewer,tf.name])
+            subprocess.run([viewer, tf.name])
         else:
-            self.show_text_popup(text.split('\n'))
+            self.show_text_popup(text.split("\n"))
 
     def edit_file(self, text, format_hint=None):
         editor = self.get_general_config().get("editor")
@@ -233,7 +243,7 @@ class MainApp(Application):
         return None
 
     def _make_tempfile(self, text, format_hint=None):
-        suffix = f'.{format_hint}' if format_hint else None
+        suffix = f".{format_hint}" if format_hint else None
         tf = tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=suffix)
         tf.write(text)
         tf.flush()
@@ -251,7 +261,7 @@ class MainApp(Application):
         general_config_file = os.path.join(config_dir, "kubemgr.ini")
 
         if not os.path.isfile(general_config_file):
-            with open(general_config_file,'w') as f:
+            with open(general_config_file, "w") as f:
                 f.write(KUBEMGR_DEFAUL_CONFIG_TEMPLATE)
 
         parser = configparser.ConfigParser()
@@ -285,9 +295,9 @@ class MainApp(Application):
 
             for section in parser.sections():
                 config_file = parser[section]["configfile"]
-                self._clusters.append(Cluster(
-                    section, config_file, self._read_kube_config(config_file)
-                ))
+                self._clusters.append(
+                    Cluster(section, config_file, self._read_kube_config(config_file))
+                )
 
             if self._clusters:
                 self._selected_cluster_index = 0
@@ -302,7 +312,7 @@ class MainApp(Application):
             loader.load_and_set(config)
             return config
 
-    #def _get_api_client(self, cluster_name):
+    # def _get_api_client(self, cluster_name):
     #    cluster = self._clusters[cluster_name]
     #    if not cluster.api_client:
     #        cluster.api_client = client.ApiClient(cluster["config"])

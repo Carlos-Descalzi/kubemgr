@@ -3,6 +3,7 @@ from .list import ListView, ListModel
 import os
 from kubemgr.util import ansi
 
+
 class FileItem:
     def __init__(self, parent, filename, isdir):
         self.parent = parent
@@ -10,15 +11,14 @@ class FileItem:
         self.isdir = isdir
 
     def __str__(self):
-        return self.filename + ('/' if self.isdir else '')
+        return self.filename + ("/" if self.isdir else "")
 
     @property
     def path(self):
-        return os.path.abspath(os.path.join(self.parent,self.filename))
+        return os.path.abspath(os.path.join(self.parent, self.filename))
 
 
 class FileListModel(ListModel):
-
     def __init__(self, path, file_filter=None):
         self._path = os.path.abspath(path)
         self._file_filter = file_filter or self._default_filter
@@ -43,23 +43,19 @@ class FileListModel(ListModel):
 
     def update(self):
         self._items = []
-        if self._path != '/':
-            self._items.append(FileItem(self._path,'..',True))
+        if self._path != "/":
+            self._items.append(FileItem(self._path, "..", True))
 
         self._items += [
-            FileItem(
-                self._path, 
-                fname, 
-                os.path.isdir( os.path.join(self._path,fname))
-            ) for fname in os.listdir(self._path) 
+            FileItem(self._path, fname, os.path.isdir(os.path.join(self._path, fname)))
+            for fname in os.listdir(self._path)
             if self._valid_file(self._path, fname)
         ]
+
     def _valid_file(self, path, filename):
-        return (filename[0] != '.'
-            and (
-                os.path.isdir(os.path.join(path,filename))
-                or self._file_filter(path, filename)
-            )
+        return filename[0] != "." and (
+            os.path.isdir(os.path.join(path, filename))
+            or self._file_filter(path, filename)
         )
 
     def get_item_count(self):
@@ -68,23 +64,24 @@ class FileListModel(ListModel):
     def get_item(self, index):
         return self._items[index]
 
+
 class FileListView(ListView):
-    def __init__(self,model=None):
+    def __init__(self, model=None):
         super().__init__(model=model, selectable=True)
         self._current_index = 0
 
     def render_item(self, item, current, selected):
-       width = self._rect.width
+        width = self._rect.width
 
-       buff = ansi.begin()
+        buff = ansi.begin()
 
-       if current:
-           buff.underline()
+        if current:
+            buff.underline()
 
-       return str(buff.write(str(item)).reset())
+        return str(buff.write(str(item)).reset())
+
 
 class FileChooser(View):
-
     def __init__(self, rect=None, path=None, file_filter=None):
         super().__init__(rect)
         self._file_list_model = FileListModel(path or os.getcwd(), file_filter)
@@ -113,24 +110,24 @@ class FileChooser(View):
 
     def update(self):
         rect = self._rect.copy()
-        rect.y+=2
-        rect.height-=3
+        rect.y += 2
+        rect.height -= 3
         self._file_list_view.set_rect(rect)
         self._file_list_view.update()
-        
-        (ansi
-            .begin()
-            .gotoxy(self._rect.x,self._rect.y)
-            .write(self.get_color('header.bg'))
-            .write(self.get_color('header.fg'))
+
+        (
+            ansi.begin()
+            .gotoxy(self._rect.x, self._rect.y)
+            .write(self.get_color("header.bg"))
+            .write(self.get_color("header.fg"))
             .bold()
-            .writefill('Select file',self._rect.width)
+            .writefill("Select file", self._rect.width)
             .reset()
-            .gotoxy(self._rect.x,self._rect.y+1)
-            .writefill(self._file_list_model.path,self._rect.width)
-            .gotoxy(self._rect.x,self._rect.y+self._rect.height-1)
-            .write(self.get_color('footer.bg'))
-            .write(self.get_color('footer.fg'))
-            .writefill('Enter: select, Esc: Exit',self._rect.width)
+            .gotoxy(self._rect.x, self._rect.y + 1)
+            .writefill(self._file_list_model.path, self._rect.width)
+            .gotoxy(self._rect.x, self._rect.y + self._rect.height - 1)
+            .write(self.get_color("footer.bg"))
+            .write(self.get_color("footer.fg"))
+            .writefill("Enter: select, Esc: Exit", self._rect.width)
             .reset()
         ).put()

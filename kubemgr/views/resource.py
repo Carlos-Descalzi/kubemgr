@@ -12,7 +12,8 @@ import json
 import traceback
 import io
 
-_DEFAULT_PATH_PREFIX='api/v1'
+_DEFAULT_PATH_PREFIX = "api/v1"
+
 
 class ResourceListModel(AsyncListModel):
     def __init__(self, application, resource_name, api_group=_DEFAULT_PATH_PREFIX):
@@ -20,7 +21,7 @@ class ResourceListModel(AsyncListModel):
         self._resource_name = resource_name
         self._api_group = api_group
         self._namespace = None
-        
+
     def set_namespace(self, namespace):
         self._namespace = namespace
 
@@ -28,25 +29,31 @@ class ResourceListModel(AsyncListModel):
         cluster = self._application.selected_cluster
         if cluster and cluster.api_client:
             try:
-                return cluster.api_client, cluster.get_resource(self._api_group, self._resource_name)
+                return (
+                    cluster.api_client,
+                    cluster.get_resource(self._api_group, self._resource_name),
+                )
             except Exception as e:
-                logging.error((
-                    f'unable to get client, resource for {self._api_group}, {self._resource_name} - {e}'
-                    +traceback.format_exc()))
+                logging.error(
+                    (
+                        f"unable to get client, resource for {self._api_group}, {self._resource_name} - {e}"
+                        + traceback.format_exc()
+                    )
+                )
         return None, None
 
     def _build_path(self, resource, name=None, namespace=None):
-        resource_name = resource['name']
-        path = '/'
+        resource_name = resource["name"]
+        path = "/"
         if self._api_group != _DEFAULT_PATH_PREFIX:
-            path+='apis/'
+            path += "apis/"
         path += self._api_group
         ns = namespace or self._namespace
-        if ns and resource['namespaced']:
-            path+= f'/namespaces/{ns}'
-        path+=f'/{resource_name}'
+        if ns and resource["namespaced"]:
+            path += f"/namespaces/{ns}"
+        path += f"/{resource_name}"
         if name:
-            path+=f'/{name}'
+            path += f"/{name}"
 
         return path
 
@@ -54,38 +61,35 @@ class ResourceListModel(AsyncListModel):
         api_client, resource = self.get_api_client_and_resource()
 
         if api_client:
-            path = self._build_path(resource, item['metadata']['name'],item['metadata']['namespace'])
+            path = self._build_path(
+                resource, item["metadata"]["name"], item["metadata"]["namespace"]
+            )
             logging.info(path)
             logging.info(contents)
             response, status, _ = api_client.call_api(
                 path,
-                'PATCH',
+                "PATCH",
                 body=contents,
-                header_params={'Content-Type':'application/json-patch+json'}
+                header_params={"Content-Type": "application/json-patch+json"},
             )
-            logging.info(f'{response},{status}')
+            logging.info(f"{response},{status}")
 
     def fetch_data(self):
         api_client, resource = self.get_api_client_and_resource()
 
         if api_client:
             path = self._build_path(resource)
-            result = api_client.call_api(
-                path,
-                'GET',
-                _preload_content=False
-            )
-            response,status_code,_ = result
+            result = api_client.call_api(path, "GET", _preload_content=False)
+            response, status_code, _ = result
             if status_code == 200:
-                self._items = json.loads(response.data.decode())['items']
+                self._items = json.loads(response.data.decode())["items"]
             else:
-                logging.error('Unable to get data: {status_code} - {response.data}')
+                logging.error("Unable to get data: {status_code} - {response.data}")
         else:
             self._items = []
 
 
 class ResourceListView(ListView):
-
     def __init__(self, rect=None, model=None, selectable=False):
         super().__init__(rect, model, selectable)
         self._key_handlers = {}
@@ -109,7 +113,7 @@ class ResourceListView(ListView):
     def do_render_item(self, item, width):
         if self._formatter:
             return self._formatter.format(item, width)
-        return item['metadata']['name']
+        return item["metadata"]["name"]
 
     def can_edit(self):
         return True
@@ -138,15 +142,17 @@ class ResourceListView(ListView):
         current = self.current_item
         if current:
             result = yaml.dump(current, Dumper=yaml.SafeDumper)
-            self._application.show_file(result,'yaml')
+            self._application.show_file(result, "yaml")
 
     def _delete_selected(self):
         # TODO Implement it
-        self._application.show_text_popup(["\n"]*3 + ["NOT IMPLEMENTED YET!"] + ["\n"] * 3)
+        self._application.show_text_popup(
+            ["\n"] * 3 + ["NOT IMPLEMENTED YET!"] + ["\n"] * 3
+        )
 
     def _edit_item(self, item):
         contents = yaml.dump(item, Dumper=yaml.SafeDumper)
-        new_contents = self._application.edit_file(contents,'yaml')
+        new_contents = self._application.edit_file(contents, "yaml")
         if new_contents:
             new_yaml = yaml.load(io.StringIO(new_contents), Loader=yaml.SafeLoader)
             json_content = json.dumps(new_yaml)

@@ -3,6 +3,7 @@ from abc import ABCMeta, abstractmethod
 import logging
 import json
 
+
 class AsyncListModel(ListModel, metaclass=ABCMeta):
     def __init__(self, application):
         self._application = application
@@ -18,6 +19,3 @@ class AsyncListModel(ListModel, metaclass=ABCMeta):
     @abstractmethod
     def fetch_data(self):
         pass
-
-
-

@@ -64,7 +64,11 @@ class ListView(View):
 
     @property
     def current_item(self):
-        return self._model.get_item(self._current_index) if self._current_index != -1 else None
+        return (
+            self._model.get_item(self._current_index)
+            if self._current_index != -1
+            else None
+        )
 
     def set_model(self, model):
         if self._model:
@@ -98,7 +102,9 @@ class ListView(View):
         from_index = self._scroll_y
         to_index = min(self._scroll_y + max_items - 1, self._model.get_item_count() - 1)
 
-        current_index = self._scroll_y + self._current_index if self._current_index != -1 else -1
+        current_index = (
+            self._scroll_y + self._current_index if self._current_index != -1 else -1
+        )
         selected_index = (
             (self._scroll_y + self._selected_index)
             if self._selected_index != -1
