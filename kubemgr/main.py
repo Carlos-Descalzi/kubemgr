@@ -6,7 +6,7 @@ import time
 import configparser
 import yaml
 from .util import ansi
-from .util.ui import COLORS, Application, Rect, TitledView, TabbedView, TextView
+from .util.ui import COLORS, Application, Rect, TitledView, TabbedView, TextView, FileChooser
 from .util.executor import TaskExecutor
 from .views.clusters import ClusterListView, ClustersListModel
 from .views.namespaces import NamespacesListModel, NamespacesListView
@@ -112,6 +112,20 @@ class MainApp(Application):
         self.add_component(tabs)
         self._task_executor.start()
 
+    def on_key_press(self, input_key):
+        if input_key == ord('c'):
+            self._load_file()
+            return True
+
+        return False
+
+    def _load_file(self):
+        chooser = FileChooser(
+            rect=Rect(width=70,height=20),
+            file_filter=lambda p,f: '.yaml' in f
+        )
+        self.open_popup(chooser)
+
 
     def _on_namespace_selected(self, item):
         ns_name = item.name if item.selected else None
@@ -197,23 +211,19 @@ class MainApp(Application):
         text_view = TextView(rect=rect, text=text)
         self.open_popup(text_view)
 
-    def show_file(self, text):
+    def show_file(self, text, format_hint=None):
         viewer = self.get_general_config().get('viewer')
 
         if viewer:
-            tf = tempfile.NamedTemporaryFile(mode="w+", delete=False)
-            tf.write(text)
-            tf.flush()
+            tf = self._make_tempfile(text, format_hint)
             subprocess.run([viewer,tf.name])
         else:
             self.show_text_popup(text.split('\n'))
 
-    def edit_file(self, text):
+    def edit_file(self, text, format_hint=None):
         editor = self.get_general_config().get("editor")
         if editor:
-            tf = tempfile.NamedTemporaryFile(mode="w+", delete=False)
-            tf.write(text)
-            tf.flush()
+            tf = self._make_tempfile(text, format_hint)
             result = subprocess.run([editor, tf.name])
             if result.returncode == 0:
                 tf.seek(0)
@@ -221,6 +231,13 @@ class MainApp(Application):
                 if new_text != text:
                     return new_text
         return None
+
+    def _make_tempfile(self, text, format_hint=None):
+        suffix = f'.{format_hint}' if format_hint else None
+        tf = tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=suffix)
+        tf.write(text)
+        tf.flush()
+        return tf
 
     def _read_configuration(self, config_dir):
         if not os.path.isdir(config_dir):

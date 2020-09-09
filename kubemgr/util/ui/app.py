@@ -70,7 +70,8 @@ class Application:
             elif keystroke == ord("h"):
                 self.show_help()
             else:
-                self._send_key_event(keystroke)
+                if not self.on_key_press(keystroke):
+                    self._send_key_event(keystroke)
 
     def _handle_exit(self):
         if self._active_popup:

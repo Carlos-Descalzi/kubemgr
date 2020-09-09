@@ -132,11 +132,11 @@ class ListView(View):
         if key == kbd.KEY_UP:
             if self._current_index > 0:
                 self._current_index -= 1
-                self.queue_update()
+                self.update()
         elif key == kbd.KEY_DOWN:
             if self._current_index < self._model.get_item_count() - 1:
                 self._current_index += 1
-                self.queue_update()
+                self.update()
         elif key == 13:
             if self._selectable:
                 self._select(self._current_index)

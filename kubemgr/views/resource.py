@@ -138,7 +138,7 @@ class ResourceListView(ListView):
         current = self.current_item
         if current:
             result = yaml.dump(current, Dumper=yaml.SafeDumper)
-            self._application.show_file(result)
+            self._application.show_file(result,'yaml')
 
     def _delete_selected(self):
         # TODO Implement it
@@ -146,7 +146,7 @@ class ResourceListView(ListView):
 
     def _edit_item(self, item):
         contents = yaml.dump(item, Dumper=yaml.SafeDumper)
-        new_contents = self._application.edit_file(contents)
+        new_contents = self._application.edit_file(contents,'yaml')
         if new_contents:
             new_yaml = yaml.load(io.StringIO(new_contents), Loader=yaml.SafeLoader)
             json_content = json.dumps(new_yaml)
