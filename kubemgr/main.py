@@ -2,9 +2,18 @@ import logging
 
 logging.basicConfig(filename="kubemgr.log", format="%(message)s", level=logging.INFO)
 import os
+import tty
+import sys
 import time
-import configparser
 import yaml
+import atexit
+import tempfile
+import subprocess
+import configparser
+from kubernetes import client, config
+from kubernetes.client import configuration
+from collections import defaultdict
+from abc import ABCMeta, abstractmethod
 from .util import ansi
 from .util.ui import (
     COLORS,
@@ -21,16 +30,6 @@ from .views.clusters import ClusterListView, ClustersListModel
 from .views.namespaces import NamespacesListModel, NamespacesListView
 from .views.resource import ResourceListModel, ResourceListView
 from .cluster import Cluster
-from kubernetes import client, config
-from kubernetes.client import configuration
-from kubernetes.config.kube_config import KubeConfigLoader
-from abc import ABCMeta, abstractmethod
-import tty
-import sys
-import atexit
-from collections import defaultdict
-import tempfile
-import subprocess
 from .texts import (
     CLUSTERS_CONFIG_TEMPLATE,
     KUBEMGR_DEFAUL_CONFIG_TEMPLATE,
@@ -294,11 +293,14 @@ class MainApp(Application):
             parser = configparser.ConfigParser(default_section="colors")
             parser.read(colors_config_file)
 
-            for key in parser["colors"]:
-                color_val = parser["colors"][key]
+            colors_section = parser['colors']
+
+            for key in colors_section:
+                color_val = colors_section[key]
                 color = bytes(color_val, "utf-8").decode("unicode_escape")
                 COLORS[key] = color
         else:
+            # Write default colors if file not present.
             with open(colors_config_file, "w") as f:
                 f.write("[colors]\n")
                 for k, v in COLORS.items():
@@ -314,33 +316,14 @@ class MainApp(Application):
 
             for cluster_name in parser.sections():
                 config_file = parser[cluster_name]["configfile"]
-                self._clusters.append(
-                    Cluster(
-                        self,
-                        cluster_name,
-                        config_file,
-                        self._read_kube_config(config_file),
-                    )
-                )
+                self._clusters.append(Cluster(self, cluster_name, config_file))
 
             if self._clusters:
                 self._selected_cluster_index = 0
         else:
+            # Write a default empty clusters file.
             with open(config_file, "w") as f:
                 f.write(CLUSTERS_CONFIG_TEMPLATE)
-
-    def _read_kube_config(self, config_file_path):
-        with open(config_file_path, "r") as f:
-            loader = KubeConfigLoader(config_dict=yaml.safe_load(f))
-            config = client.Configuration()
-            loader.load_and_set(config)
-            return config
-
-    # def _get_api_client(self, cluster_name):
-    #    cluster = self._clusters[cluster_name]
-    #    if not cluster.api_client:
-    #        cluster.api_client = client.ApiClient(cluster["config"])
-    #    return cluster.api_client
 
 
 if __name__ == "__main__":
