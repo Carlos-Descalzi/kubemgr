@@ -51,7 +51,7 @@ class MainApp(Application):
         self._clusters = []
         self._config = {}
         self._selected_cluster_index = -1
-        self._read_configuration(config_dir)
+        first_time = self._read_configuration(config_dir)
 
         self._clusters_model = ClustersListModel(self)
         self._clusters_view = ClusterListView(
@@ -127,6 +127,9 @@ class MainApp(Application):
         self.add_component(tabs)
         self._task_executor.start()
 
+    def _on_finish(self):
+        self._task_executor.finish()
+
     def on_key_press(self, input_key):
         if input_key == ord("c"):
             self._load_file()
@@ -199,7 +202,7 @@ class MainApp(Application):
                 _preload_content=True,
             )
 
-        self.show_text_popup(logs.split("\n"))
+        self.show_file(logs,"log")
 
     def _show_labels(self):
         current = self._nodes_view.current_item
@@ -245,6 +248,7 @@ class MainApp(Application):
         if viewer:
             tf = self._make_tempfile(text, format_hint)
             subprocess.run([viewer, tf.name])
+            self.refresh()
         else:
             self.show_text_popup(text.split("\n"))
 
@@ -253,6 +257,7 @@ class MainApp(Application):
         if editor:
             tf = self._make_tempfile(text, format_hint)
             result = subprocess.run([editor, tf.name])
+            self.refresh()
             if result.returncode == 0:
                 tf.seek(0)
                 new_text = tf.read()
@@ -268,12 +273,17 @@ class MainApp(Application):
         return tf
 
     def _read_configuration(self, config_dir):
-        if not os.path.isdir(config_dir):
+
+        first_time = not os.path.isdir(config_dir)
+
+        if first_time:
             os.makedirs(config_dir)
 
         self._read_general_config(config_dir)
         self._read_colors_config(config_dir)
         self._read_clusters_config(config_dir)
+
+        return first_time
 
     def _read_general_config(self, config_dir):
         general_config_file = os.path.join(config_dir, "kubemgr.ini")
@@ -328,6 +338,4 @@ class MainApp(Application):
 
 if __name__ == "__main__":
     mgr = MainApp("/home/carlos/.kubemgr")
-    ansi.cursor_off()
     mgr.main_loop()
-    ansi.cursor_on()

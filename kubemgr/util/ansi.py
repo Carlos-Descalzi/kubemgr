@@ -7,11 +7,21 @@ BOLD = "\u001b[1m"
 REVERSE = "\u001b[7m"
 RESET = "\u001b[0m"
 CLRSCR = "\u001b[2J"
+CURSOR_OFF = "\033[?25l"
+CURSOR_ON = "\033[?25h"
 
 
 class UiWriter:
     def __init__(self):
         self._buffer = ""
+
+    def cursor_off(self):
+        self._buffer += CURSOR_OFF
+        return self
+
+    def cursor_on(self):
+        self._buffer += CURSOR_ON
+        return self
 
     def clrscr(self):
         self._buffer += CLRSCR

@@ -16,6 +16,11 @@ class TaskExecutor:
     def start(self):
         self._thread.start()
 
+    def finish(self):
+        if self._active and self._thread:
+            self._active = False
+            self._thread.join()
+
     def _run(self):
         while self._active:
             to_remove = []

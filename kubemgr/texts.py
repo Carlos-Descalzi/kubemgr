@@ -8,9 +8,10 @@ CLUSTERS_CONFIG_TEMPLATE = """
 
 KUBEMGR_DEFAUL_CONFIG_TEMPLATE = """
 [general]
+# Editor for yaml resource files
 editor=/usr/bin/vim
-# Ucomment to use a custom viewer, by default uses internal viewer.
-#viewer=/usr/bin/view
+# Viewer for yaml and logs, if not set uses internal viewer (I haven't put too much effort on it).
+viewer=/usr/bin/view
 [tabs]
 # Fixed tab, allows basic customizing
 # Uses basic python formatting with some exceptions.
