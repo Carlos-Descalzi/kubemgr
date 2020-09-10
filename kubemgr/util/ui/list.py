@@ -5,6 +5,7 @@ import time
 import sys
 import tty
 from abc import ABCMeta, abstractmethod
+import logging
 
 
 class ListModel(metaclass=ABCMeta):
@@ -98,22 +99,22 @@ class ListView(View):
 
     def update(self):
         max_items = self._rect.height
+        last_item = self._model.get_item_count() - 1
 
         from_index = self._scroll_y
-        to_index = min(self._scroll_y + max_items - 1, self._model.get_item_count() - 1)
+        to_index = min(self._scroll_y + max_items - 1, last_item)
 
         current_index = (
-            self._scroll_y + self._current_index if self._current_index != -1 else -1
+            self._current_index - self._scroll_y if self._current_index != -1 else -1
         )
         selected_index = (
-            (self._scroll_y + self._selected_index)
+            (self._selected_index - self._scroll_y)
             if self._selected_index != -1
             else -1
         )
-
         for i in range(from_index, to_index + 1):
             item = self._model.get_item(i)
-            item_index = self._scroll_y + i
+            item_index = i - self._scroll_y
 
             current = item_index == current_index
             selected = self._selectable and item_index == selected_index
@@ -121,28 +122,46 @@ class ListView(View):
             text = self.render_item(item, current, selected)
             (
                 ansi.begin()
-                .gotoxy(self._rect.x, self._rect.y + i)
+                .gotoxy(self._rect.x, self._rect.y + i - self._scroll_y)
                 .writefill(text, self._rect.width)
             ).put()
 
         last_y = self._rect.y + (to_index + 1 - from_index)
-        max_y = self._rect.y + self._rect.height - 2
+        max_y = self._rect.y + self._rect.height - 1
 
         ui_buff = ansi.begin()
-        while last_y < max_y:
-            ui_buff.gotoxy(self._rect.x, last_y).write(" " * self._rect.width)
+        while last_y <= max_y:
+            ui_buff.gotoxy(self._rect.x, last_y).writefill("", self._rect.width)
             last_y += 1
         ui_buff.put()
 
     def on_key_press(self, key):
+        item_count = self._model.get_item_count()
         if key == kbd.KEY_UP:
             if self._current_index > 0:
                 self._current_index -= 1
+                if self._current_index - self._scroll_y < 0:
+                    self._scroll_y -= 1
+                self.update()
+            elif self._scroll_y > 0:
+                self._scroll_y -= 1
                 self.update()
         elif key == kbd.KEY_DOWN:
-            if self._current_index < self._model.get_item_count() - 1:
+            if self._current_index < item_count - 1:
                 self._current_index += 1
+                if self._current_index - self._scroll_y >= self._rect.height:
+                    self._scroll_y += 1
                 self.update()
+        elif key == kbd.KEY_PGDN:
+            self._scroll_y += self._rect.height
+            if self._scroll_y + self._rect.height > item_count:
+                self._scroll_y = item_count - self._rect.height
+            self._current_index = self._scroll_y
+            self.update()
+        elif key == kbd.KEY_HOME:
+            self._current_index = 0
+            self._scroll_y = 0
+            self.update()
         elif key == 13:
             if self._selectable:
                 self._select(self._current_index)
