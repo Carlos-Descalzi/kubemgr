@@ -61,7 +61,8 @@ HELP_CONTENTS = f"""
     for nodes, namespaces, pods, cronjobs, etc:
         v: display resource as Yaml
         e: Opens editor to edit resource.
-        d: Deletes de selected resource
+        d: Deletes de selected resource.
+        c: Creates/updates a kubernetes resource from a yaml file.
     for pods:
         l: View pod logs.
     for nodes:
