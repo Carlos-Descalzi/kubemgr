@@ -4,6 +4,7 @@ from .view import View
 import time
 import sys
 import tty
+import logging
 
 
 class TabbedView(View):
@@ -36,19 +37,29 @@ class TabbedView(View):
         if active:
             active.view.set_focused(focused)
 
+    def _get_visible_tabs(self):
+        # Tabs may not fit in available terminal width.
+        max_width = max([len(i.title)+1 for i in self._tabs])
+        visible_tab_count = int(self._rect.width / max_width)
+        scroll_x = int(self._active / visible_tab_count) * visible_tab_count
+        return self._tabs[scroll_x:scroll_x+visible_tab_count], max_width
+
     def update(self):
 
         header_buff = ansi.begin()
 
-        for i, tab in enumerate(self._tabs):
+        tabs, max_width = self._get_visible_tabs()
 
-            if i == self._active:
+        active_tab = self._tabs[self._active] if self._tabs else None
+
+        for tab in tabs:
+            if tab == active_tab:
                 header_buff.write(self.get_color("selected.bg")).write(
                     self.get_color("selected.fg")
                 )
             else:
                 header_buff.write(self.get_color("bg")).write(self.get_color("fg"))
-            header_buff.write(f" {tab.title} ").reset()
+            header_buff.writefill(f"{tab.title}",max_width).reset()
 
         (
             ansi.begin()
@@ -59,11 +70,7 @@ class TabbedView(View):
 
         header = str(header_buff)
 
-        # header = header[0 : self._rect.width]
-
         (ansi.begin().gotoxy(self._rect.x, self._rect.y).write(header).reset()).put()
-
-        active_tab = self._tabs[self._active] if self._tabs else None
 
         if active_tab:
             inner_rect = self._rect.copy()
