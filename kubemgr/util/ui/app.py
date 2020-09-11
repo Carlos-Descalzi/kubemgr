@@ -8,6 +8,7 @@ import termios
 import atexit
 import fcntl
 
+
 class Application:
     def __init__(self):
         self._components = []
@@ -33,9 +34,11 @@ class Application:
         tty.setraw(sys.stdin)
         orig_fl = fcntl.fcntl(sys.stdin, fcntl.F_GETFL)
         fcntl.fcntl(sys.stdin, fcntl.F_SETFL, orig_fl | os.O_NONBLOCK)
+
         def on_exit():
             ansi.begin().clrscr().cursor_on().put()
             termios.tcsetattr(sys.stdin, termios.TCSADRAIN, term_attrs)
+
         atexit.register(on_exit)
 
         ansi.begin().clrscr().cursor_off().put()
@@ -80,7 +83,7 @@ class Application:
         read = sys.stdin.read(3)
 
         if len(read) > 0:
-            keystroke = kbd.make_keystroke(list(map(ord, read)))
+            keystroke = kbd.keystroke_from_str(read)
             if keystroke == kbd.KEY_ESC:
                 self._handle_exit()
             elif keystroke == kbd.KEY_TAB:

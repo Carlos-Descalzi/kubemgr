@@ -39,10 +39,10 @@ class TabbedView(View):
 
     def _get_visible_tabs(self):
         # Tabs may not fit in available terminal width.
-        max_width = max([len(i.title)+1 for i in self._tabs])
+        max_width = max([len(i.title) + 1 for i in self._tabs])
         visible_tab_count = int(self._rect.width / max_width)
         scroll_x = int(self._active / visible_tab_count) * visible_tab_count
-        return self._tabs[scroll_x:scroll_x+visible_tab_count], max_width
+        return self._tabs[scroll_x : scroll_x + visible_tab_count], max_width
 
     def update(self):
 
@@ -59,7 +59,7 @@ class TabbedView(View):
                 )
             else:
                 header_buff.write(self.get_color("bg")).write(self.get_color("fg"))
-            header_buff.writefill(f"{tab.title}",max_width).reset()
+            header_buff.writefill(f"{tab.title}", max_width).reset()
 
         (
             ansi.begin()

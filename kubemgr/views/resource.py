@@ -16,38 +16,59 @@ _DEFAULT_PATH_PREFIX = "api/v1"
 
 
 class ResourceListModel(AsyncListModel):
-    def __init__(self, application, resource_name, api_group=_DEFAULT_PATH_PREFIX):
+    def __init__(self, application, resource_kind, api_group=_DEFAULT_PATH_PREFIX):
         super().__init__(application)
-        self._resource_name = resource_name
+        self._resource_kind = resource_kind
         self._api_group = api_group
+        self._cluster = None
         self._namespace = None
+
+    def set_cluster(self, cluster):
+        self._cluster = cluster
+
+    def get_cluster(self):
+        return self._cluster
+
+    cluster = property(get_cluster, set_cluster)
+
+    @property
+    def enabled(self):
+        return self._cluster is not None
 
     def set_namespace(self, namespace):
         self._namespace = namespace
 
+    def get_namespace(self):
+        return self._namespace
+
+    namespace = property(get_namespace, set_namespace)
+
+    """
     def get_api_client_and_resource(self):
         cluster = self._application.selected_cluster
         if cluster and cluster.api_client:
             try:
                 return (
                     cluster.api_client,
-                    cluster.get_resource(self._api_group, self._resource_name),
+                    cluster.get_resource(self._api_group, self._resource_kind),
                 )
             except Exception as e:
                 logging.error(
                     (
-                        f"unable to get client, resource for {self._api_group}, {self._resource_name} - {e}"
+                        f"unable to get client, resource for {self._api_group}, {self._resource_kind} - {e}"
                         + traceback.format_exc()
                     )
                 )
         return None, None
+    """
 
     def _build_path(self, resource, name=None, namespace=None):
         cluster = self._application.selected_cluster
-        return cluster.build_path(self._api_group, resource,name, namespace)
+        return cluster.build_path(self._api_group, resource, name, namespace)
 
     def update(self, item, contents):
-        api_client, resource = self.get_api_client_and_resource()
+        api_client = self._cluster.api_client
+        resource = self._cluster.get_resource(self._api_group, self._resource_kind)
 
         if api_client:
             path = self._build_path(
@@ -63,19 +84,30 @@ class ResourceListModel(AsyncListModel):
             )
             logging.info(f"{response},{status}")
 
-    def fetch_data(self):
-        api_client, resource = self.get_api_client_and_resource()
+    def delete(self, item):
+        api_client = self._cluster.api_client
+        resource = self._cluster.get_resource(self._api_group, self._resource_kind)
 
-        if api_client:
-            path = self._build_path(resource)
-            result = api_client.call_api(path, "GET", _preload_content=False)
-            response, status_code, _ = result
-            if status_code == 200:
-                self._items = json.loads(response.data.decode())["items"]
-            else:
-                logging.error("Unable to get data: {status_code} - {response.data}")
-        else:
-            self._items = []
+        path = self._model._build_path(
+            resource, item["metadata"]["name"], item["metadata"]["namespace"]
+        )
+        response = api_client.call_api(path, "DELETE")
+        logging.info(response)
+
+    def fetch_data(self):
+        self._items = []
+        if self._cluster:
+            api_client = self._cluster.api_client
+            resource = self._cluster.get_resource(self._api_group, self._resource_kind)
+
+            if api_client:
+                path = self._build_path(resource, namespace=self.namespace)
+                result = api_client.call_api(path, "GET", _preload_content=False)
+                response, status_code, _ = result
+                if status_code == 200:
+                    self._items = json.loads(response.data.decode())["items"]
+                else:
+                    logging.error("Unable to get data: {status_code} - {response.data}")
 
 
 class ResourceListView(ListView):
@@ -104,28 +136,25 @@ class ResourceListView(ListView):
             return self._formatter.format(item, width)
         return item["metadata"]["name"]
 
-    def can_edit(self):
-        return True
-
     def on_key_press(self, input_key):
-
-        if input_key == ord("v"):
-            self._show_selected()
-        elif input_key == ord("e"):
-            self._edit_selected()
-        elif input_key == ord("d"):
-            self._delete_selected()
-        elif input_key in self._key_handlers:
-            self._key_handlers[input_key]()
+        if self._model.enabled:
+            if input_key == ord("v"):
+                self._show_selected()
+            elif input_key == ord("e"):
+                self._edit_selected()
+            elif input_key == ord("d"):
+                self._delete_selected()
+            elif input_key in self._key_handlers:
+                self._key_handlers[input_key]()
+            else:
+                super().on_key_press(input_key)
         else:
             super().on_key_press(input_key)
 
     def _edit_selected(self):
-
-        if self.can_edit():
-            current = self.current_item
-            if current:
-                self._edit_item(current)
+        current = self.current_item
+        if current:
+            self._edit_item(current)
 
     def _show_selected(self):
         current = self.current_item
@@ -148,12 +177,7 @@ class ResourceListView(ListView):
 
         def do_delete():
             logging.info("Deleting resource")
-            api_client, resource = self._model.get_api_client_and_resource()
-            path = self._model._build_path(
-                resource, item["metadata"]["name"], item["metadata"]["namespace"]
-            )
-            response = api_client.call_api(path, "DELETE")
-            logging.info(response)
+            self_model.delete(item)
             self.update()
 
         self._application.add_task(do_delete, False)

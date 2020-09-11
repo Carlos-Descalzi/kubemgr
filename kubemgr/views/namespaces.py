@@ -23,21 +23,33 @@ class NsItem:
 
 
 class NamespacesListModel(AsyncListModel):
-    _current_cluster = None
+
+    _cluster = None
+
+    def __init__(self, application):
+        super().__init__(application, False)
+
+    def set_cluster(self, cluster):
+        self._cluster = cluster
+        self.refresh()
+
+    def get_cluster(self):
+        return self._cluster
+
+    cluster = property(get_cluster, set_cluster)
+
+    def enabled(self):
+        return self._cluster is not None
 
     def fetch_data(self):
-        cluster = self._application.selected_cluster
+        if self._cluster:
+            api_client = self._cluster.api_client
 
-        if cluster:
-            if cluster != self._current_cluster or not self._items:
-                self._current_cluster = cluster
-                api_client = cluster.api_client
-
-                response, status, _ = cluster.api_client.call_api(
-                    "/api/v1/namespaces", "GET", _preload_content=False
-                )
-                namespaces = json.loads(response.data.decode())["items"]
-                self._items = [NsItem(i) for i in namespaces]
+            response, status, _ = self._cluster.api_client.call_api(
+                "/api/v1/namespaces", "GET", _preload_content=False
+            )
+            namespaces = json.loads(response.data.decode())["items"]
+            self._items = [NsItem(i) for i in namespaces]
         else:
             self._items = []
 

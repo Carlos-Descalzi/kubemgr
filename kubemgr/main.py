@@ -50,14 +50,13 @@ class MainApp(Application):
         self._task_executor = TaskExecutor()
         self._clusters = []
         self._config = {}
-        self._selected_cluster_index = -1
         first_time = self._read_configuration(config_dir)
 
         self._clusters_model = ClustersListModel(self)
         self._clusters_view = ClusterListView(
             model=self._clusters_model, selectable=True
         )
-        self._clusters_view.set_on_select(self._on_cluster_selected)
+        self._clusters_view.set_on_select(self.set_selected_cluster)
         self._nodes_model = ResourceListModel(self, "Node")
         self._nodes_view = ResourceListView(model=self._nodes_model)
         self._nodes_view.set_key_handler(ord("l"), self._show_labels)
@@ -127,6 +126,9 @@ class MainApp(Application):
         self.add_component(tabs)
         self._task_executor.start()
 
+        if self._clusters:
+            self._clusters_view.set_selected_index(0)# set_selected_cluster(self._clusters[0])
+
     def _on_finish(self):
         self._task_executor.finish()
 
@@ -141,25 +143,36 @@ class MainApp(Application):
         chooser = FileChooser(
             rect=Rect(width=70, height=20), file_filter=lambda p, f: ".yaml" in f
         )
+
         def file_selected(path):
             self.close_popup()
             self._create_resource(path)
+
         chooser.set_on_file_selected(file_selected)
         self.open_popup(chooser)
 
-    def _on_cluster_selected(self, cluster):
-        if not cluster.connected:
-            cluster.connect()
-        pass
+    def get_selected_cluster(self):
+        return self._clusters_view.get_selected_item()
+
+    def set_selected_cluster(self, cluster):
+        models = [self._nodes_model, self._namespaces_model, self._pods_model] + [
+            tab.model for tab in self._custom_tabs
+        ]
+        for model in models:
+            model.set_cluster(cluster)
+
+    selected_cluster = property(get_selected_cluster, set_selected_cluster)
 
     def _on_namespace_selected(self, item):
         ns_name = item.name if item.selected else None
+        logging.info(f"Namespace filter: {ns_name}")
         self._set_namespace_filter(ns_name)
 
     def _set_namespace_filter(self, namespace):
         models = [self._pods_model] + [tab.model for tab in self._custom_tabs]
         for model in models:
-            model.set_namespace(namespace)
+            logging.info(f"Setting filter to {model}")
+            model.namespace = namespace
         self._update_view()
 
     def add_task(self, task, loop=True):
@@ -168,12 +181,6 @@ class MainApp(Application):
     @property
     def clusters(self):
         return self._clusters
-
-    @property
-    def selected_cluster(self):
-        if self._selected_cluster_index != -1:
-            return self._clusters[self._selected_cluster_index]
-        return None
 
     def get_general_config(self):
         return self._config["general"]
@@ -195,7 +202,7 @@ class MainApp(Application):
         name = current["metadata"]["name"]
         namespace = current["metadata"]["namespace"]
 
-        cluster = self.selected_cluster
+        cluster = self.get_selected_cluster()
 
         if cluster:
             api = cluster.api_client
@@ -206,35 +213,31 @@ class MainApp(Application):
                 _preload_content=True,
             )
 
-        self.show_file(logs,"log")
+        self.show_file(logs, "log")
 
     def _create_resource(self, yaml_file_path):
         try:
             from yaml import SafeLoader
-            with open(yaml_file_path,'r') as f:
+
+            with open(yaml_file_path, "r") as f:
                 resources = yaml.full_load_all(f)
 
                 for resource in resources:
                     cluster = self.selected_cluster
                     api_client = cluster.api_client
                     path = cluster.build_path_for_resource(
-                        resource['apiVersion'], 
-                        resource['kind'],
-                        resource['metadata'].get('namespace'),
-                        None
+                        resource["apiVersion"],
+                        resource["kind"],
+                        resource["metadata"].get("namespace"),
+                        None,
                     )
-                    logging.info(f'Path: {path}')
-                    response = api_client.call_api(
-                        path,
-                        'POST',
-                        body=resource
-                    )
+                    logging.info(f"Path: {path}")
+                    response = api_client.call_api(path, "POST", body=resource)
                     logging.info(response)
         except Exception as e:
             import traceback
-            logging.error(f'{e} {traceback.format_exc()}')
 
-
+            logging.error(f"{e} {traceback.format_exc()}")
 
     def _show_labels(self):
         current = self._nodes_view.current_item
@@ -335,7 +338,7 @@ class MainApp(Application):
             parser = configparser.ConfigParser(default_section="colors")
             parser.read(colors_config_file)
 
-            colors_section = parser['colors']
+            colors_section = parser["colors"]
 
             for key in colors_section:
                 color_val = colors_section[key]
@@ -358,10 +361,10 @@ class MainApp(Application):
 
             for cluster_name in parser.sections():
                 config_file = parser[cluster_name]["configfile"]
-                self._clusters.append(Cluster(self, cluster_name, config_file))
+                cluster = Cluster(self, cluster_name, config_file)
+                self._clusters.append(cluster)
+                cluster.connect()
 
-            if self._clusters:
-                self._selected_cluster_index = 0
         else:
             # Write a default empty clusters file.
             with open(config_file, "w") as f:

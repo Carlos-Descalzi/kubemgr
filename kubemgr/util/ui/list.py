@@ -63,6 +63,16 @@ class ListView(View):
 
     on_select = property(get_on_select, set_on_select)
 
+    def set_selected_index(self, index):
+        self._selected_index = index
+        if index != -1:
+            self._notify_selected(index)
+
+    def get_selected_index(self):
+        return self._selected_index
+
+    selected_index = property(get_selected_index, set_selected_index)
+
     @property
     def current_item(self):
         return (
@@ -81,13 +91,10 @@ class ListView(View):
         self._model = model
 
         if self._model:
-            self._model.set_on_item_added(self._mark_dirty)
-            self._model.set_on_item_removed(self._mark_dirty)
-            self._model.set_on_item_changed(self._mark_dirty)
-            self._model.set_on_list_changed(self._mark_dirty)
-
-    def _mark_dirty(self):
-        self._dirty = True
+            self._model.set_on_item_added(self.queue_update)
+            self._model.set_on_item_removed(self.queue_update)
+            self._model.set_on_item_changed(self.queue_update)
+            self._model.set_on_list_changed(self.queue_update)
 
     def get_model(self):
         return self._model
@@ -158,6 +165,12 @@ class ListView(View):
                 self._scroll_y = item_count - self._rect.height
             self._current_index = self._scroll_y
             self.update()
+        elif key == kbd.KEY_PGUP:
+            self._scroll_y -= self._rect.height
+            if self._scroll_y < 0:
+                self._scroll_y = 0
+            self._current_index = self._scroll_y
+            self.update()
         elif key == kbd.KEY_HOME:
             self._current_index = 0
             self._scroll_y = 0
@@ -174,9 +187,6 @@ class ListView(View):
     def get_selected_item(self):
         if self._selected_index != -1:
             return self._model.get_item(self._selected_index)
-
-    def get_selected_index(self):
-        return self._selected_index
 
     def _notify_selected(self, index):
         if self._on_select:

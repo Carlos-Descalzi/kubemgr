@@ -45,25 +45,27 @@ class Cluster:
 
         self._application.add_task(_connect, False)
 
-    def build_path_for_resource(self, api_group, resource_kind, namespace=None, name=None):
+    def build_path_for_resource(
+        self, api_group, resource_kind, namespace=None, name=None
+    ):
         resource = self.get_resource(api_group, resource_kind)
         return self.build_path(api_group, resource, name=name, namespace=namespace)
 
     def build_path(self, api_group, resource, name=None, namespace=None):
         resource_name = resource["name"]
+        namespaced = resource["namespaced"]
         path = "/"
-        if api_group != 'api/v1': # TODO Fix
-            if api_group == 'v1':
-                path+='api/'
+        if api_group != "api/v1":  # TODO Fix
+            if api_group == "v1":
+                path += "api/"
             else:
                 path += "apis/"
         path += api_group
-        if namespace and resource["namespaced"]:
+        if namespaced and namespace:
             path += f"/namespaces/{namespace}"
         path += f"/{resource_name}"
         if name:
             path += f"/{name}"
-
         return path
 
     def _create_connection(self):
@@ -81,19 +83,14 @@ class Cluster:
                     logging.info(f"No info for api group {api_group_version}")
 
         self._resources["api/v1"] = self._get_resources(api_client, "/api/v1/")
-        self._resources["v1"] = self._get_resources(api_client, "/api/v1/") #TODO Fix this
-        #self._log_resource_types(self._resources)
+        self._resources["v1"] = self._get_resources(
+            api_client, "/api/v1/"
+        )  # TODO Fix this
         self._api_client = api_client
 
     def _get_resources(self, api_client, path):
         response, status, _ = api_client.call_api(path, "GET", _preload_content=False)
         return json.loads(response.data.decode())["resources"]
-
-    def _log_resource_types(self, resources):
-        for k, rl in resources.items():
-            logging.info(f"{k}:")
-            for i in rl:
-                logging.info(f"\t{i['name']},{i['kind']}")
 
     def _read_kube_config(self, config_file_path):
         with open(config_file_path, "r") as f:
@@ -101,10 +98,6 @@ class Cluster:
             config = client.Configuration()
             loader.load_and_set(config)
             return config
-
-    # def get_api_group(self, name):
-    #    found = list(filter(lambda x: x.name == name, self._apis))
-    #    return found[0] if found else None
 
     def get_resource(self, api_group, resource_name):
         found = list(
