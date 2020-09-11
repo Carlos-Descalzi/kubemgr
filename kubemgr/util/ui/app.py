@@ -1,10 +1,12 @@
-import logging
 from kubemgr.util import ansi, kbd
+import logging
 import time
 import sys
 import tty
+import os
 import termios
 import atexit
+import fcntl
 
 class Application:
     def __init__(self):
@@ -26,19 +28,22 @@ class Application:
             self._cycle_focus()
 
     def main_loop(self):
-        import fcntl
-        import os
 
         term_attrs = termios.tcgetattr(sys.stdin)
         tty.setraw(sys.stdin)
         orig_fl = fcntl.fcntl(sys.stdin, fcntl.F_GETFL)
         fcntl.fcntl(sys.stdin, fcntl.F_SETFL, orig_fl | os.O_NONBLOCK)
+        def on_exit():
+            ansi.begin().clrscr().cursor_on().put()
+            termios.tcsetattr(sys.stdin, termios.TCSADRAIN, term_attrs)
+        atexit.register(on_exit)
 
         ansi.begin().clrscr().cursor_off().put()
         count = 0
         while self._active:
             self.empty_queue()
             if count == 0:
+                # Force some refresh
                 self._update_view()
             self._check_keyboard()
             count += 1
@@ -47,11 +52,6 @@ class Application:
             time.sleep(0.01)
 
         self._on_finish()
-
-        def on_exit():
-            ansi.begin().clrscr().cursor_on().put()
-            termios.tcsetattr(sys.stdin, termios.TCSADRAIN, term_attrs)
-        atexit.register(on_exit)
 
     def refresh(self):
         ansi.begin().clrscr().cursor_off().put()

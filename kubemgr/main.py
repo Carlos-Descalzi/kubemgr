@@ -141,6 +141,10 @@ class MainApp(Application):
         chooser = FileChooser(
             rect=Rect(width=70, height=20), file_filter=lambda p, f: ".yaml" in f
         )
+        def file_selected(path):
+            self.close_popup()
+            self._create_resource(path)
+        chooser.set_on_file_selected(file_selected)
         self.open_popup(chooser)
 
     def _on_cluster_selected(self, cluster):
@@ -203,6 +207,34 @@ class MainApp(Application):
             )
 
         self.show_file(logs,"log")
+
+    def _create_resource(self, yaml_file_path):
+        try:
+            from yaml import SafeLoader
+            with open(yaml_file_path,'r') as f:
+                resources = yaml.full_load_all(f)
+
+                for resource in resources:
+                    cluster = self.selected_cluster
+                    api_client = cluster.api_client
+                    path = cluster.build_path_for_resource(
+                        resource['apiVersion'], 
+                        resource['kind'],
+                        resource['metadata'].get('namespace'),
+                        None
+                    )
+                    logging.info(f'Path: {path}')
+                    response = api_client.call_api(
+                        path,
+                        'POST',
+                        body=resource
+                    )
+                    logging.info(response)
+        except Exception as e:
+            import traceback
+            logging.error(f'{e} {traceback.format_exc()}')
+
+
 
     def _show_labels(self):
         current = self._nodes_view.current_item

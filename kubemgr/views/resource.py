@@ -43,19 +43,8 @@ class ResourceListModel(AsyncListModel):
         return None, None
 
     def _build_path(self, resource, name=None, namespace=None):
-        resource_name = resource["name"]
-        path = "/"
-        if self._api_group != _DEFAULT_PATH_PREFIX:
-            path += "apis/"
-        path += self._api_group
-        ns = namespace or self._namespace
-        if ns and resource["namespaced"]:
-            path += f"/namespaces/{ns}"
-        path += f"/{resource_name}"
-        if name:
-            path += f"/{name}"
-
-        return path
+        cluster = self._application.selected_cluster
+        return cluster.build_path(self._api_group, resource,name, namespace)
 
     def update(self, item, contents):
         api_client, resource = self.get_api_client_and_resource()

@@ -45,6 +45,27 @@ class Cluster:
 
         self._application.add_task(_connect, False)
 
+    def build_path_for_resource(self, api_group, resource_kind, namespace=None, name=None):
+        resource = self.get_resource(api_group, resource_kind)
+        return self.build_path(api_group, resource, name=name, namespace=namespace)
+
+    def build_path(self, api_group, resource, name=None, namespace=None):
+        resource_name = resource["name"]
+        path = "/"
+        if api_group != 'api/v1': # TODO Fix
+            if api_group == 'v1':
+                path+='api/'
+            else:
+                path += "apis/"
+        path += api_group
+        if namespace and resource["namespaced"]:
+            path += f"/namespaces/{namespace}"
+        path += f"/{resource_name}"
+        if name:
+            path += f"/{name}"
+
+        return path
+
     def _create_connection(self):
         self.config = self._read_kube_config(self.config_file)
         api_client = client.ApiClient(self.config)
@@ -60,6 +81,7 @@ class Cluster:
                     logging.info(f"No info for api group {api_group_version}")
 
         self._resources["api/v1"] = self._get_resources(api_client, "/api/v1/")
+        self._resources["v1"] = self._get_resources(api_client, "/api/v1/") #TODO Fix this
         #self._log_resource_types(self._resources)
         self._api_client = api_client
 
