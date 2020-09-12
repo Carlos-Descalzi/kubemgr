@@ -5,6 +5,7 @@ import traceback
 from kubernetes.client.rest import ApiException
 import json
 import yaml
+import threading
 
 
 class Cluster:
@@ -16,34 +17,56 @@ class Cluster:
         self._api_client = None
         self._connection_error = None
         self._resources = {}
+        self._connection_thread = None
+        self._on_connect_handler = None
+        self._on_error_handler = None
+
+    def set_on_connect_handler(self, handler):
+        self._on_connect_handler = handler
+
+    def set_on_error_handler(self, handler):
+        self._on_error_handler = handler
 
     @property
     def connected(self):
         return self._api_client is not None
 
     @property
+    def connecting(self):
+        return (
+            self._connection_thread is not None 
+            and self._connection_thread.is_alive()
+            and self._api_client is None
+        )
+
+    @property
     def api_client(self):
-        if not self._api_client:
-            self._create_connection()
         return self._api_client
 
     def disconnect(self):
-        if self._api_client:
+        if self.connected:
             self._api_client.close()
             self._resources = {}
 
-    def connect(self, on_success=None, on_error=None):
-        def _connect():
-            try:
-                self._create_connection()
-                if on_success:
-                    on_success(self)
-            except Exception as e:
-                logging.error(e)
-                if on_error:
-                    on_error(self, e)
+    @property
+    def connection_error(self):
+        return self._connection_error
 
-        self._application.add_task(_connect, False)
+    def connect(self):
+        if not self.connecting:
+            self._connection_thread = threading.Thread(target=self._do_connect,daemon=True)
+            self._connection_thread.start()
+
+    def _do_connect(self):
+        try:
+            self._create_connection()
+            if self._on_connect_handler:
+                self._on_connect_handler(self)
+        except Exception as e:
+            logging.error(f'Error connecting to cluster {e}')
+            self._connection_error = e
+            if self._on_error_handler:
+                self._on_error_handler(self, e)
 
     def build_path_for_resource(
         self, api_group, resource_kind, namespace=None, name=None
@@ -89,7 +112,7 @@ class Cluster:
         self._api_client = api_client
 
     def _get_resources(self, api_client, path):
-        response, status, _ = api_client.call_api(path, "GET", _preload_content=False)
+        response, status, _ = api_client.call_api(path, "GET", _preload_content=False, _request_timeout=5)
         return json.loads(response.data.decode())["resources"]
 
     def _read_kube_config(self, config_file_path):

@@ -26,6 +26,7 @@ from .util.ui import (
     QuestionDialog,
 )
 from .util.executor import TaskExecutor
+from .util import kbd
 from .views.clusters import ClusterListView, ClustersListModel
 from .views.namespaces import NamespacesListModel, NamespacesListView
 from .views.resource import ResourceListModel, ResourceListView
@@ -73,7 +74,7 @@ class MainApp(Application):
 
         self._custom_tabs = []
 
-        tabs_config = self.get_tabs_config()
+        tabs_config = self._get_tabs_config()
 
         for tabname, config in tabs_config.items():
             if tabname != "podstab":
@@ -124,32 +125,14 @@ class MainApp(Application):
             tabs.add_tab(tab.title, tab.view)
 
         self.add_component(tabs)
+
+        self.set_key_handler(kbd.keystroke_from_str('c'),self._load_file)
+
         self._task_executor.start()
 
+        self._clusters_model.set_clusters(self._clusters)
         if self._clusters:
-            self._clusters_view.set_selected_index(0)# set_selected_cluster(self._clusters[0])
-
-    def _on_finish(self):
-        self._task_executor.finish()
-
-    def on_key_press(self, input_key):
-        if input_key == ord("c"):
-            self._load_file()
-            return True
-
-        return False
-
-    def _load_file(self):
-        chooser = FileChooser(
-            rect=Rect(width=70, height=20), file_filter=lambda p, f: ".yaml" in f
-        )
-
-        def file_selected(path):
-            self.close_popup()
-            self._create_resource(path)
-
-        chooser.set_on_file_selected(file_selected)
-        self.open_popup(chooser)
+            self._clusters_view.set_selected_index(0)
 
     def get_selected_cluster(self):
         return self._clusters_view.get_selected_item()
@@ -163,15 +146,25 @@ class MainApp(Application):
 
     selected_cluster = property(get_selected_cluster, set_selected_cluster)
 
-    def _on_namespace_selected(self, item):
-        ns_name = item.name if item.selected else None
-        logging.info(f"Namespace filter: {ns_name}")
-        self._set_namespace_filter(ns_name)
+    def _on_finish(self):
+        self._task_executor.finish()
 
-    def _set_namespace_filter(self, namespace):
+    def _load_file(self):
+        chooser = FileChooser(
+            rect=Rect(width=70, height=20), file_filter=lambda p, f: ".yaml" in f
+        )
+
+        def file_selected(path):
+            self.close_popup()
+            self._create_resource(path)
+
+        chooser.set_on_file_selected(file_selected)
+        self.open_popup(chooser)
+
+    def _on_namespace_selected(self, item):
+        namespace = item.name if item.selected else None
         models = [self._pods_model] + [tab.model for tab in self._custom_tabs]
         for model in models:
-            logging.info(f"Setting filter to {model}")
             model.namespace = namespace
         self._update_view()
 
@@ -185,7 +178,7 @@ class MainApp(Application):
     def get_general_config(self):
         return self._config["general"]
 
-    def get_tabs_config(self):
+    def _get_tabs_config(self):
         config = defaultdict(dict)
         tabs_config = self._config["tabs"]
         for key in tabs_config:

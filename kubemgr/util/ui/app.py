@@ -17,6 +17,7 @@ class Application:
         self._popup_closeable = True
         self._active = True
         self._queue = []
+        self._key_handlers = {}
 
     def add_component(self, component):
         component.set_application(self)
@@ -79,6 +80,12 @@ class Application:
         if not self._active_popup:
             self._queue.append(task)
 
+    def set_key_handler(self, keystroke, handler):
+        self._key_handlers[keystroke] = handler
+
+    def unset_key_handler(self, keystroke):
+        self._key_handlers.pop(keystroke)
+
     def _check_keyboard(self):
         read = sys.stdin.read(3)
 
@@ -91,7 +98,12 @@ class Application:
             elif keystroke == ord("h"):
                 self.show_help()
             else:
-                if not self.on_key_press(keystroke):
+                key_handler = self._key_handlers.get(keystroke)
+
+                if key_handler:
+                    key_handler()
+                else:
+                    #if not self.on_key_press(keystroke):
                     self._send_key_event(keystroke)
 
     def _handle_exit(self):

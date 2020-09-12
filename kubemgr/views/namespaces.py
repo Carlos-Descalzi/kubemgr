@@ -42,7 +42,7 @@ class NamespacesListModel(AsyncListModel):
         return self._cluster is not None
 
     def fetch_data(self):
-        if self._cluster:
+        if self._cluster and self._cluster.connected:
             api_client = self._cluster.api_client
 
             response, status, _ = self._cluster.api_client.call_api(

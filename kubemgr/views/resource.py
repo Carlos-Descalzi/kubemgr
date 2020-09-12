@@ -33,7 +33,10 @@ class ResourceListModel(AsyncListModel):
 
     @property
     def enabled(self):
-        return self._cluster is not None
+        return (
+            self._cluster is not None 
+            and self._cluster.connected
+        )
 
     def set_namespace(self, namespace):
         self._namespace = namespace
@@ -67,10 +70,10 @@ class ResourceListModel(AsyncListModel):
         return cluster.build_path(self._api_group, resource, name, namespace)
 
     def update(self, item, contents):
-        api_client = self._cluster.api_client
-        resource = self._cluster.get_resource(self._api_group, self._resource_kind)
 
-        if api_client:
+        if self.enabled:
+            api_client = self._cluster.api_client
+            resource = self._cluster.get_resource(self._api_group, self._resource_kind)
             path = self._build_path(
                 resource, item["metadata"]["name"], item["metadata"]["namespace"]
             )
@@ -85,18 +88,19 @@ class ResourceListModel(AsyncListModel):
             logging.info(f"{response},{status}")
 
     def delete(self, item):
-        api_client = self._cluster.api_client
-        resource = self._cluster.get_resource(self._api_group, self._resource_kind)
+        if self.enabled:
+            api_client = self._cluster.api_client
+            resource = self._cluster.get_resource(self._api_group, self._resource_kind)
 
-        path = self._model._build_path(
-            resource, item["metadata"]["name"], item["metadata"]["namespace"]
-        )
-        response = api_client.call_api(path, "DELETE")
-        logging.info(response)
+            path = self._model._build_path(
+                resource, item["metadata"]["name"], item["metadata"]["namespace"]
+            )
+            response = api_client.call_api(path, "DELETE")
+            logging.info(response)
 
     def fetch_data(self):
         self._items = []
-        if self._cluster:
+        if self.enabled:
             api_client = self._cluster.api_client
             resource = self._cluster.get_resource(self._api_group, self._resource_kind)
 
