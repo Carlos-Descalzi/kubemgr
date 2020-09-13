@@ -1,5 +1,5 @@
-keystroke = lambda x: sum( [i * (100 ** n) for n, i in enumerate(reversed(x))])
-keystroke_from_str = lambda x: keystroke(list(map(ord,x)))
+keystroke = lambda x: sum([i * (100 ** n) for n, i in enumerate(reversed(x))])
+keystroke_from_str = lambda x: keystroke(list(map(ord, x)))
 
 KEY_UP = keystroke([27, 91, 65])
 KEY_DOWN = keystroke([27, 91, 66])

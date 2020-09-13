@@ -95,15 +95,13 @@ class Application:
                 self._handle_exit()
             elif keystroke == kbd.KEY_TAB:
                 self._cycle_focus()
-            elif keystroke == ord("h"):
-                self.show_help()
             else:
                 key_handler = self._key_handlers.get(keystroke)
 
                 if key_handler:
                     key_handler()
                 else:
-                    #if not self.on_key_press(keystroke):
+                    # if not self.on_key_press(keystroke):
                     self._send_key_event(keystroke)
 
     def _handle_exit(self):
@@ -138,9 +136,6 @@ class Application:
         else:
             for component in self._components:
                 component.update()
-
-    def show_help(self):
-        pass
 
     def open_popup(self, view, closeable=True):
         max_height, max_width = ansi.terminal_size()

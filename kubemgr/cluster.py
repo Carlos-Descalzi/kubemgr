@@ -9,10 +9,20 @@ import threading
 
 
 class Cluster:
-    def __init__(self, application, name, config_file):
+
+    @classmethod
+    def from_config(cls, application, name, config):
+
+        config_file = config["configfile"]
+        timeout = int(config.get("timeout", 5))
+
+        return Cluster(application, name, config_file, timeout)
+
+    def __init__(self, application, name, config_file, request_timeout=5):
         self._application = application
         self.name = name
         self.config_file = config_file
+        self._request_timeout = request_timeout
         self.config = None
         self._api_client = None
         self._connection_error = None
@@ -34,7 +44,7 @@ class Cluster:
     @property
     def connecting(self):
         return (
-            self._connection_thread is not None 
+            self._connection_thread is not None
             and self._connection_thread.is_alive()
             and self._api_client is None
         )
@@ -54,7 +64,9 @@ class Cluster:
 
     def connect(self):
         if not self.connecting:
-            self._connection_thread = threading.Thread(target=self._do_connect,daemon=True)
+            self._connection_thread = threading.Thread(
+                target=self._do_connect, daemon=True
+            )
             self._connection_thread.start()
 
     def _do_connect(self):
@@ -63,7 +75,7 @@ class Cluster:
             if self._on_connect_handler:
                 self._on_connect_handler(self)
         except Exception as e:
-            logging.error(f'Error connecting to cluster {e}')
+            logging.error(f"Error connecting to cluster {e}")
             self._connection_error = e
             if self._on_error_handler:
                 self._on_error_handler(self, e)
@@ -112,7 +124,9 @@ class Cluster:
         self._api_client = api_client
 
     def _get_resources(self, api_client, path):
-        response, status, _ = api_client.call_api(path, "GET", _preload_content=False, _request_timeout=5)
+        response, status, _ = api_client.call_api(
+            path, "GET", _preload_content=False, _request_timeout=self._request_timeout
+        )
         return json.loads(response.data.decode())["resources"]
 
     def _read_kube_config(self, config_file_path):

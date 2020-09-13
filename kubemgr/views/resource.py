@@ -33,10 +33,7 @@ class ResourceListModel(AsyncListModel):
 
     @property
     def enabled(self):
-        return (
-            self._cluster is not None 
-            and self._cluster.connected
-        )
+        return self._cluster is not None and self._cluster.connected
 
     def set_namespace(self, namespace):
         self._namespace = namespace
