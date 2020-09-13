@@ -12,7 +12,8 @@ A little console based tool for managing Kubernetes clusters.
 
 ## Configuration Files
 
-In **folder$HOME/.kubemgr**:
+
+The folder **$HOME/.kubemgr** is created the first time the program is executed with the following configuration files:
 
 ### kubemgr.ini
 - editor: Absolute path to external editor program.
