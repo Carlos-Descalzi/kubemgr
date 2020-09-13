@@ -4,6 +4,7 @@ import logging
 import json
 from typing import List, Any
 
+
 class AsyncListModel(ListModel, metaclass=ABCMeta):
     def __init__(self, application, periodic=True):
         self._application = application

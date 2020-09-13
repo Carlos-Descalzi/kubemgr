@@ -100,7 +100,7 @@ class ListView(View):
             self._model.set_on_item_changed(self._model_changed)
             self._model.set_on_list_changed(self._model_changed)
 
-    def _model_changed(self,*_):
+    def _model_changed(self, *_):
         self.queue_update()
 
     def get_model(self):
@@ -156,32 +156,32 @@ class ListView(View):
                 self._current_index -= 1
                 if self._current_index - self._scroll_y < 0:
                     self._scroll_y -= 1
-                self.update()
+                self.queue_update()
             elif self._scroll_y > 0:
                 self._scroll_y -= 1
-                self.update()
+                self.queue_update()
         elif key == kbd.KEY_DOWN:
             if self._current_index < item_count - 1:
                 self._current_index += 1
                 if self._current_index - self._scroll_y >= self._rect.height:
                     self._scroll_y += 1
-                self.update()
+                self.queue_update()
         elif key == kbd.KEY_PGDN:
             self._scroll_y += self._rect.height
             if self._scroll_y + self._rect.height > item_count:
                 self._scroll_y = item_count - self._rect.height
             self._current_index = self._scroll_y
-            self.update()
+            self.queue_update()
         elif key == kbd.KEY_PGUP:
             self._scroll_y -= self._rect.height
             if self._scroll_y < 0:
                 self._scroll_y = 0
             self._current_index = self._scroll_y
-            self.update()
+            self.queue_update()
         elif key == kbd.KEY_HOME:
             self._current_index = 0
             self._scroll_y = 0
-            self.update()
+            self.queue_update()
         elif key == kbd.KEY_ENTER:
             if self._selectable:
                 self._select(self._current_index)
@@ -189,7 +189,7 @@ class ListView(View):
     def _select(self, index):
         self._selected_index = index
         self._notify_selected(index)
-        self.update()
+        self.queue_update()
 
     def get_selected_item(self):
         if self._selected_index != -1:

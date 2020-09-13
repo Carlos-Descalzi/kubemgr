@@ -31,6 +31,9 @@ class TitledView(View):
         self._update_inner()
         super().set_rect(rect)
 
+    def contains(self, child):
+        return self._inner == child
+
     def _update_inner(self):
         if self._inner:
             inner_rect = self._rect.copy()

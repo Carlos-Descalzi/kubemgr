@@ -37,6 +37,12 @@ class TabbedView(View):
         if active:
             active.view.set_focused(focused)
 
+    def contains(self, child):
+        for tab in self._tabs:
+            if tab.view == child:
+                return True
+        return False
+
     def _get_visible_tabs(self):
         # Tabs may not fit in available terminal width.
         max_width = max([len(i.title) + 1 for i in self._tabs])
@@ -77,7 +83,7 @@ class TabbedView(View):
             inner_rect.y += 1
             inner_rect.height -= 1
             active_tab.view.set_rect(inner_rect)
-            active_tab.view.queue_update()
+            active_tab.view.update()
 
     def _set_active(self, active):
         self._tabs[self._active].view.visible = False

@@ -48,35 +48,35 @@ class TextView(View):
     def _home(self):
         self._scroll_y = 0
         self._scroll_x = 0
-        self.update()
+        self.queue_update()
 
     def _page_down(self):
         self._scroll_y += self._rect.height
         if self._scroll_y + self._rect.height >= len(self._text):
             self._scroll_y = len(self._text) - self._rect.height - 1
-        self.update()
+        self.queue_update()
 
     def _page_up(self):
         self._scroll_y -= self._rect.height
         if self._scroll_y < 0:
             self._scroll_y = 0
-        self.update()
+        self.queue_update()
 
     def _scroll_down(self):
         if self._scroll_y + self._rect.height < len(self._text) - 1:
             self._scroll_y += 1
-            self.update()
+            self.queue_update()
 
     def _scroll_up(self):
         if self._scroll_y > 0:
             self._scroll_y -= 1
-            self.update()
+            self.queue_update()
 
     def _scroll_right(self):
         self._scroll_x += 1
-        self.update()
+        self.queue_update()
 
     def _scroll_left(self):
         if self._scroll_x > 0:
             self._scroll_x -= 1
-            self.update()
+            self.queue_update()

@@ -30,7 +30,6 @@ class ClustersListModel(ListModel):
 
 
 class ClusterListView(ListView):
-
     def render_item(self, item, current, selected):
         buff = ansi.begin()
         if self.focused and current:

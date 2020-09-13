@@ -3,6 +3,7 @@ from .base import Rect, COLORS
 import time
 import sys
 import tty
+import logging
 
 
 class View:
@@ -61,6 +62,9 @@ class View:
 
     def get_color(self, key):
         return COLORS.get(self.get_color_key(key), "")
+
+    def contains(self, child):
+        return False
 
     def on_key_press(self, key):
         pass

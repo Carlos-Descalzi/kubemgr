@@ -44,16 +44,9 @@ class Application:
 
         self.refresh()
 
-        count = 0
         while self._active:
             self.empty_queue()
-            #if count == 0:
-                # Force some refresh
-                #self._update_view()
             self._check_keyboard()
-            count += 1
-            if count >= 49:
-                count = 0
             time.sleep(0.01)
 
         self._on_finish()
@@ -73,13 +66,21 @@ class Application:
         self._queue = set()
         try:
             for view in queue:
-                view.update()
+                if self._active_popup:
+                    if self._is_in_popup(view):
+                        view.update()
+                else:
+                    view.update()
         except Exception as e:
             logging.error(e)
 
+    def _is_in_popup(self, view):
+        return self._active_popup and (
+            self._active_popup == view or self._active_popup.contains(view)
+        )
+
     def queue_update(self, view):
-        if not self._active_popup:
-            self._queue.add(view)
+        self._queue.add(view)
 
     def set_key_handler(self, keystroke, handler):
         self._key_handlers[keystroke] = handler
@@ -140,6 +141,7 @@ class Application:
 
     def open_popup(self, view, closeable=True):
         max_height, max_width = ansi.terminal_size()
+        view.set_application(self)
         view._rect.x = int((max_width - view._rect.width) / 2)
         view._rect.y = int((max_height - view._rect.height) / 2)
         self._active_popup = view

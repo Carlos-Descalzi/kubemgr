@@ -89,6 +89,13 @@ class FileChooser(View):
         self._file_list_view.set_on_select(self._on_item_selected)
         self._on_file_selected = None
 
+    def set_application(self, application):
+        super().set_application(application)
+        self._file_list_view.set_application(application)
+
+    def contains(self, child):
+        return self._file_list_view == child
+
     def _on_item_selected(self, item):
         if item.isdir:
             self._file_list_model.go_into(item)
