@@ -80,8 +80,10 @@ class TabbedView(View):
             active_tab.view.queue_update()
 
     def _set_active(self, active):
+        self._tabs[self._active].view.visible = False
         self._tabs[self._active].view.set_focused(False)
         self._active = active
+        self._tabs[self._active].view.visible = True
         self._tabs[self._active].view.set_focused(True)
         self.queue_update()
 

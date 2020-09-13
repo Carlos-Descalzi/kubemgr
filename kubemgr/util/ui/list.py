@@ -182,7 +182,7 @@ class ListView(View):
             self._current_index = 0
             self._scroll_y = 0
             self.update()
-        elif key == 13:
+        elif key == kbd.KEY_ENTER:
             if self._selectable:
                 self._select(self._current_index)
 

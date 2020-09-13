@@ -11,6 +11,7 @@ class View:
         self._rect = rect or Rect()
         self._dirty = True
         self._application = None
+        self._visible = True
 
     def set_application(self, application):
         self._application = application
@@ -19,6 +20,14 @@ class View:
         return self._application
 
     application = property(get_application, set_application)
+
+    def set_visible(self, visible):
+        self._visible = visible
+
+    def get_visible(self):
+        return self._visible
+
+    visible = property(get_visible, set_visible)
 
     def set_rect(self, rect):
         old_rect = self._rect
@@ -60,5 +69,5 @@ class View:
         pass
 
     def queue_update(self):
-        if self._application:
+        if self._application and self.visible:
             self._application.queue_update(self)
