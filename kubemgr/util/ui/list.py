@@ -27,6 +27,10 @@ class ListModel(metaclass=ABCMeta):
     def set_on_list_changed(self, on_list_changed):
         self._on_list_changed = on_list_changed
 
+    def notify_list_changed(self):
+        if self._on_list_changed:
+            self._on_list_changed(self)
+
     @abstractmethod
     def get_item_count(self):
         pass
@@ -91,10 +95,13 @@ class ListView(View):
         self._model = model
 
         if self._model:
-            self._model.set_on_item_added(self.queue_update)
-            self._model.set_on_item_removed(self.queue_update)
-            self._model.set_on_item_changed(self.queue_update)
-            self._model.set_on_list_changed(self.queue_update)
+            self._model.set_on_item_added(self._model_changed)
+            self._model.set_on_item_removed(self._model_changed)
+            self._model.set_on_item_changed(self._model_changed)
+            self._model.set_on_list_changed(self._model_changed)
+
+    def _model_changed(self,*_):
+        self.queue_update()
 
     def get_model(self):
         return self._model

@@ -16,7 +16,7 @@ class Application:
         self._active_popup = None
         self._popup_closeable = True
         self._active = True
-        self._queue = []
+        self._queue = set()
         self._key_handlers = {}
 
     def add_component(self, component):
@@ -42,13 +42,14 @@ class Application:
 
         atexit.register(on_exit)
 
-        ansi.begin().clrscr().cursor_off().put()
+        self.refresh()
+
         count = 0
         while self._active:
             self.empty_queue()
-            if count == 0:
+            #if count == 0:
                 # Force some refresh
-                self._update_view()
+                #self._update_view()
             self._check_keyboard()
             count += 1
             if count >= 49:
@@ -69,16 +70,16 @@ class Application:
 
     def empty_queue(self):
         queue = self._queue
-        self._queue = []
-        for task in queue:
-            try:
-                task()
-            except Exception as e:
-                logging.error(e)
+        self._queue = set()
+        try:
+            for view in queue:
+                view.update()
+        except Exception as e:
+            logging.error(e)
 
-    def queue_task(self, task):
+    def queue_update(self, view):
         if not self._active_popup:
-            self._queue.append(task)
+            self._queue.add(view)
 
     def set_key_handler(self, keystroke, handler):
         self._key_handlers[keystroke] = handler

@@ -15,9 +15,11 @@ class ClustersListModel(ListModel):
             cluster.set_on_error_handler(self._error)
 
     def _connected(self, cluster):
+        self.notify_list_changed()
         logging.info(f"{cluster} Connected!")
 
     def _error(self, cluster, error):
+        self.notify_list_changed()
         logging.error(f"Connection error! {cluster} {error}")
 
     def get_item_count(self):
@@ -27,11 +29,7 @@ class ClustersListModel(ListModel):
         return self._clusters[index]
 
 
-_SPINNER = "-\\|/"
-
-
 class ClusterListView(ListView):
-    _ticks = 0
 
     def render_item(self, item, current, selected):
         buff = ansi.begin()
@@ -44,10 +42,8 @@ class ClusterListView(ListView):
         if item.connected:
             buff.fg(2).write("(C)")
         elif item.connecting:
-            buff.write(" ").write(_SPINNER[self._ticks % 4])
+            buff.write("...")
         elif item.connection_error:
             buff.fg(1).write("<X>")
         buff.reset()
-        if item == self._model.get_item(self._model.get_item_count() - 1):
-            self._ticks += 1
         return str(buff)

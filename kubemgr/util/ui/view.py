@@ -61,4 +61,4 @@ class View:
 
     def queue_update(self):
         if self._application:
-            self._application.queue_task(self.update)
+            self._application.queue_update(self)

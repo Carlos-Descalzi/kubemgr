@@ -136,9 +136,10 @@ class MainApp(Application):
         delete_action = DeleteResource(self)
         view_action = ViewResource(self)
         edit_action = EditResource(self)
+        help_action = ShowHelp(self)
 
+        self.set_key_handler(kbd.keystroke_from_str("h"), help_action)
         self.set_key_handler(kbd.keystroke_from_str("c"), CreateResource(self))
-        self.set_key_handler(kbd.keystroke_from_str("h"), ShowHelp(self))
         self._pods_view.set_key_handler(kbd.keystroke_from_str("l"), ShowLogs(self))
         self._nodes_view.set_key_handler(
             kbd.keystroke_from_str("l"), ShowNodeLabels(self)
@@ -158,6 +159,9 @@ class MainApp(Application):
         self._clusters_model.set_clusters(self._clusters)
         if self._clusters:
             self._clusters_view.set_selected_index(0)
+
+        if first_time:
+            help_action()
 
     def get_selected_cluster(self):
         return self._clusters_view.get_selected_item()
@@ -322,7 +326,7 @@ class MainApp(Application):
 
         else:
             # Write a default empty clusters file.
-            with open(config_file, "w") as f:
+            with open(clusters_config_file, "w") as f:
                 f.write(CLUSTERS_CONFIG_TEMPLATE)
 
 

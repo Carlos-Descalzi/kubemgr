@@ -52,15 +52,15 @@ class ResourceListModel(AsyncListModel):
     namespace = property(get_namespace, set_namespace)
 
     def fetch_data(self):
-        self._items = []
         if self.enabled:
             try:
                 result = self._cluster.do_get(
                     self._api_group, self._resource_kind, namespace=self._namespace
                 )
-                self._items = json.loads(result.decode())["items"]
+                return json.loads(result.decode())["items"]
             except Exception as e:
                 logging.error(e)
+        return []
 
 
 class ResourceListView(ListView):

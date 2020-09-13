@@ -46,11 +46,10 @@ class NamespacesListModel(AsyncListModel):
             try:
                 result = self._cluster.do_simple_get("/api/v1/namespaces")
                 namespaces = json.loads(result.decode())["items"]
-                self._items = [NsItem(i) for i in namespaces]
+                return [NsItem(i) for i in namespaces]
             except Exception as e:
                 logging.error(e)
-        else:
-            self._items = []
+        return []
 
 
 class NamespacesListView(ResourceListView):
