@@ -26,5 +26,5 @@ This file configures the paths to kube config files of clusters.
     configfile=/path/to/kube/config
     timeout=requests timeout in seconds.
 
-### colors.init
+### colors.ini
 Allows customize the UI. On the first run the program will dump here the actual settings.
