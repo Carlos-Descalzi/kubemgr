@@ -30,7 +30,7 @@ from .util import kbd
 from .views.clusters import ClusterListView, ClustersListModel
 from .views.namespaces import NamespacesListModel, NamespacesListView
 from .views.resource import ResourceListModel, ResourceListView
-from .actions import CreateResource, ShowLogs, ShowNodeLabels, ShowHelp
+from .actions import CreateResource, ShowLogs, ShowNodeLabels, ShowHelp, DeleteResource, ViewResource
 from .cluster import Cluster
 from .texts import (
     CLUSTERS_CONFIG_TEMPLATE,
@@ -125,25 +125,21 @@ class MainApp(Application):
 
         self.add_component(tabs)
 
-        self._nodes_view.set_key_handler(
-            kubd.keystroke_from_str("l"), 
-            ShowNodeLabels(self)
-        )
-
-        self._pods_view.set_key_handler(
-            kbd.keystroke_from_str("l"), 
-            ShowLogs(self)
-        )
-
-        self.set_key_handler(
-            kbd.keystroke_from_str("c"), 
-            CreateResource(self)
-        )
-
-        self.set_key_handler(
-            kubd.keystroke_from_str("h"),
-            ShowHelp(self)
-        )
+        delete_action = DeleteResource(self)
+        view_action = ViewResource(self)
+        self.set_key_handler( kbd.keystroke_from_str("c"), CreateResource(self))
+        self.set_key_handler( kbd.keystroke_from_str("h"), ShowHelp(self))
+        self._pods_view.set_key_handler( kbd.keystroke_from_str("v"), view_action)
+        self._pods_view.set_key_handler( kbd.keystroke_from_str("d"), delete_action)
+        self._pods_view.set_key_handler( kbd.keystroke_from_str("l"), ShowLogs(self))
+        self._nodes_view.set_key_handler(kbd.keystroke_from_str("v"), view_action)
+        self._nodes_view.set_key_handler( kbd.keystroke_from_str("d"), delete_action)
+        self._nodes_view.set_key_handler( kbd.keystroke_from_str("l"), ShowNodeLabels(self))
+        self._namespaces_view.set_key_handler(kbd.keystroke_from_str("v"), view_action)
+        self._namespaces_view.set_key_handler( kbd.keystroke_from_str("d"), delete_action)
+        for tab in self._custom_tabs:
+            tab.view.set_key_handler( kbd.keystroke_from_str("d"), delete_action)
+            tab.view.set_key_handler( kbd.keystroke_from_str("v"), view_action)
 
         self._task_executor.start()
 

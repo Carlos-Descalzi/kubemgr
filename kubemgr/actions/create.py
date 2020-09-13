@@ -12,7 +12,7 @@ class CreateResource:
             rect=Rect(width=70, height=20), file_filter=lambda p, f: ".yaml" in f
         )
         chooser.set_on_file_selected(self._file_selected)
-        self.app.open_popup(chooser)
+        self._app.open_popup(chooser)
 
     def _file_selected(self, path):
         self._app.close_popup()
@@ -25,7 +25,7 @@ class CreateResource:
                 resources = yaml.full_load_all(f)
 
                 for resource in resources:
-                    cluster = self.app.selected_cluster
+                    cluster = self._app.selected_cluster
                     api_client = cluster.api_client
                     path = cluster.build_path_for_resource(
                         resource["apiVersion"],

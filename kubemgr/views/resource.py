@@ -23,6 +23,14 @@ class ResourceListModel(AsyncListModel):
         self._cluster = None
         self._namespace = None
 
+    @property
+    def api_group(self):
+        return self._api_group
+
+    @property
+    def resource_kind(self):
+        return self._resource_kind
+
     def set_cluster(self, cluster):
         self._cluster = cluster
 
@@ -84,17 +92,6 @@ class ResourceListModel(AsyncListModel):
             )
             logging.info(f"{response},{status}")
 
-    def delete(self, item):
-        if self.enabled:
-            api_client = self._cluster.api_client
-            resource = self._cluster.get_resource(self._api_group, self._resource_kind)
-
-            path = self._model._build_path(
-                resource, item["metadata"]["name"], item["metadata"]["namespace"]
-            )
-            response = api_client.call_api(path, "DELETE")
-            logging.info(response)
-
     def fetch_data(self):
         self._items = []
         if self.enabled:
@@ -139,14 +136,10 @@ class ResourceListView(ListView):
 
     def on_key_press(self, input_key):
         if self._model.enabled:
-            if input_key == ord("v"):
-                self._show_selected()
-            elif input_key == ord("e"):
+            if input_key == ord("e"):
                 self._edit_selected()
-            elif input_key == ord("d"):
-                self._delete_selected()
             elif input_key in self._key_handlers:
-                self._key_handlers[input_key]()
+                self._key_handlers[input_key](self)
             else:
                 super().on_key_press(input_key)
         else:
@@ -156,35 +149,6 @@ class ResourceListView(ListView):
         current = self.current_item
         if current:
             self._edit_item(current)
-
-    def _show_selected(self):
-        current = self.current_item
-        if current:
-            result = yaml.dump(current, Dumper=yaml.SafeDumper)
-            self._application.show_file(result, "yaml")
-
-    def _delete_selected(self):
-        self._application.show_question_dialog(
-            "Warning",
-            "Sure you want to delete the resource?",
-            [
-                ("y", "Yes", self._on_delete_confirm),
-                ("n", "No", self._on_delete_cancel),
-            ],
-        )
-
-    def _on_delete_confirm(self):
-        item = self.current_item
-
-        def do_delete():
-            logging.info("Deleting resource")
-            self_model.delete(item)
-            self.update()
-
-        self._application.add_task(do_delete, False)
-
-    def _on_delete_cancel(self):
-        pass
 
     def _edit_item(self, item):
         contents = yaml.dump(item, Dumper=yaml.SafeDumper)

@@ -99,7 +99,7 @@ class Application:
                 key_handler = self._key_handlers.get(keystroke)
 
                 if key_handler:
-                    key_handler()
+                    key_handler(self)
                 else:
                     # if not self.on_key_press(keystroke):
                     self._send_key_event(keystroke)
