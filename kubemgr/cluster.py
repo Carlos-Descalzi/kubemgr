@@ -168,16 +168,15 @@ class Cluster:
         path = self.build_path(api_group, resource, name=name, namespace=namespace)
         response, status, _ = self._api_client.call_api(path, "POST", body=body)
 
-        if status != 200:
-            raise Exception(f"{status} - {response.data}")
+        if status not in [200,201]:
+            raise Exception(f"{status} - {response}")
 
     def do_delete(self, api_group, resource_kind, name, namespace=None):
         resource = self.get_resource(api_group, resource_kind)
         path = self.build_path(api_group, resource, name=name, namespace=namespace)
         response, status, _ = self.api_client.call_api(path, "DELETE")
         if status != 200:
-            raise Exception(f"{status} - {response.data}")
-        return response.data
+            raise Exception(f"{status} - {response}")
 
     def do_patch(
         self,
