@@ -12,7 +12,8 @@ A little console based tool for managing Kubernetes clusters.
 
 ## Configuration Files
 
-In **folder$HOME/.kubemgr**:
+
+The folder **$HOME/.kubemgr** is created the first time the program is executed with the following configuration files:
 
 ### kubemgr.ini
 - editor: Absolute path to external editor program.
@@ -25,5 +26,5 @@ This file configures the paths to kube config files of clusters.
     configfile=/path/to/kube/config
     timeout=requests timeout in seconds.
 
-### colors.init
+### colors.ini
 Allows customize the UI. On the first run the program will dump here the actual settings.
