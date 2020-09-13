@@ -5,23 +5,22 @@ class ShowLogs:
     def __call__(self, target):
 
         cluster = self._app.get_selected_cluster()
+        current = target.current_item
 
-        if cluster:
-            current = target.current_item
+        if cluster and current:
 
-            if current:
-                name = current["metadata"]["name"]
-                namespace = current["metadata"]["namespace"]
+            name = current["metadata"]["name"]
+            namespace = current["metadata"]["namespace"]
 
+            try:
+                logs = cluster.do_get(
+                    target.model.api_group,
+                    target.model.resource_kind,
+                    name,
+                    namespace,
+                    "log",
+                )
 
-                if cluster:
-                    api = cluster.api_client
-                    logs, _, _ = api.call_api(
-                        f"/api/v1/namespaces/{namespace}/pods/{name}/log",
-                        "GET",
-                        response_type="str",
-                        _preload_content=True,
-                    )
-
-                self._app.show_file(logs, "log")
-
+                self._app.show_file(logs.decode(), "log")
+            except Exception as e:
+                self._app.show_error(e)

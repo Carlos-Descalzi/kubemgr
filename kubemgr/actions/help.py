@@ -1,5 +1,6 @@
 from kubemgr.texts import HELP_CONTENTS
 
+
 class ShowHelp:
     def __init__(self, app):
         self._app = app

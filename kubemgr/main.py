@@ -30,7 +30,15 @@ from .util import kbd
 from .views.clusters import ClusterListView, ClustersListModel
 from .views.namespaces import NamespacesListModel, NamespacesListView
 from .views.resource import ResourceListModel, ResourceListView
-from .actions import CreateResource, ShowLogs, ShowNodeLabels, ShowHelp, DeleteResource, ViewResource
+from .actions import (
+    CreateResource,
+    ShowLogs,
+    ShowNodeLabels,
+    ShowHelp,
+    DeleteResource,
+    ViewResource,
+    EditResource,
+)
 from .cluster import Cluster
 from .texts import (
     CLUSTERS_CONFIG_TEMPLATE,
@@ -127,19 +135,23 @@ class MainApp(Application):
 
         delete_action = DeleteResource(self)
         view_action = ViewResource(self)
-        self.set_key_handler( kbd.keystroke_from_str("c"), CreateResource(self))
-        self.set_key_handler( kbd.keystroke_from_str("h"), ShowHelp(self))
-        self._pods_view.set_key_handler( kbd.keystroke_from_str("v"), view_action)
-        self._pods_view.set_key_handler( kbd.keystroke_from_str("d"), delete_action)
-        self._pods_view.set_key_handler( kbd.keystroke_from_str("l"), ShowLogs(self))
-        self._nodes_view.set_key_handler(kbd.keystroke_from_str("v"), view_action)
-        self._nodes_view.set_key_handler( kbd.keystroke_from_str("d"), delete_action)
-        self._nodes_view.set_key_handler( kbd.keystroke_from_str("l"), ShowNodeLabels(self))
-        self._namespaces_view.set_key_handler(kbd.keystroke_from_str("v"), view_action)
-        self._namespaces_view.set_key_handler( kbd.keystroke_from_str("d"), delete_action)
-        for tab in self._custom_tabs:
-            tab.view.set_key_handler( kbd.keystroke_from_str("d"), delete_action)
-            tab.view.set_key_handler( kbd.keystroke_from_str("v"), view_action)
+        edit_action = EditResource(self)
+
+        self.set_key_handler(kbd.keystroke_from_str("c"), CreateResource(self))
+        self.set_key_handler(kbd.keystroke_from_str("h"), ShowHelp(self))
+        self._pods_view.set_key_handler(kbd.keystroke_from_str("l"), ShowLogs(self))
+        self._nodes_view.set_key_handler(
+            kbd.keystroke_from_str("l"), ShowNodeLabels(self)
+        )
+
+        resource_views = [self._pods_view, self._nodes_view, self._namespaces_view] + [
+            tab.view for tab in self._custom_tabs
+        ]
+
+        for view in resource_views:
+            view.set_key_handler(kbd.keystroke_from_str("d"), delete_action)
+            view.set_key_handler(kbd.keystroke_from_str("v"), view_action)
+            view.set_key_handler(kbd.keystroke_from_str("e"), edit_action)
 
         self._task_executor.start()
 
@@ -153,8 +165,7 @@ class MainApp(Application):
     def set_selected_cluster(self, cluster):
 
         if cluster.connection_error:
-            error = self._format_error(cluster.connection_error)
-            self.show_text_popup(error.split('\n'))
+            self.show_error(cluster.connection_error)
         else:
             models = [self._nodes_model, self._namespaces_model, self._pods_model] + [
                 tab.model for tab in self._custom_tabs
@@ -163,6 +174,11 @@ class MainApp(Application):
                 model.set_cluster(cluster)
 
     selected_cluster = property(get_selected_cluster, set_selected_cluster)
+
+    def show_error(self, error):
+        logging.error(error)
+        error_str = self._format_error(error)
+        self.show_text_popup(error_str.split("\n"))
 
     @property
     def clusters(self):
@@ -220,10 +236,9 @@ class MainApp(Application):
                 if new_text != text:
                     return new_text
         return None
-    
-    def _format_error(self, error):
-        error_str = misc.word_wrap_text(str(error),70)
 
+    def _format_error(self, error):
+        error_str = misc.word_wrap_text(str(error), 70)
         return f"An error has occurred:\n\n{error_str}"
 
     def _on_finish(self):

@@ -9,7 +9,6 @@ import threading
 
 
 class Cluster:
-
     @classmethod
     def from_config(cls, application, name, config):
 
@@ -86,7 +85,7 @@ class Cluster:
         resource = self.get_resource(api_group, resource_kind)
         return self.build_path(api_group, resource, name=name, namespace=namespace)
 
-    def build_path(self, api_group, resource, name=None, namespace=None):
+    def build_path(self, api_group, resource, name=None, namespace=None, verb=None):
         resource_name = resource["name"]
         namespaced = resource["namespaced"]
         path = "/"
@@ -99,8 +98,13 @@ class Cluster:
         if namespaced and namespace:
             path += f"/namespaces/{namespace}"
         path += f"/{resource_name}"
+
         if name:
             path += f"/{name}"
+
+        if verb:
+            path += f"/{verb}"
+
         return path
 
     def _create_connection(self):
@@ -141,3 +145,61 @@ class Cluster:
             filter(lambda x: x["kind"] == resource_name, self._resources[api_group])
         )
         return found[0] if found else None
+
+    def do_simple_get(self, path):
+        response, status, _ = self.api_client.call_api(
+            path, "GET", _preload_content=False, _request_timeout=self._request_timeout
+        )
+
+        if status != 200:
+            raise Exception(f"{status} - {response.data}")
+
+        return response.data
+
+    def do_get(self, api_group, resource_kind, name=None, namespace=None, verb=None):
+        resource = self.get_resource(api_group, resource_kind)
+        path = self.build_path(
+            api_group, resource, name=name, namespace=namespace, verb=verb
+        )
+        return self.do_simple_get(path)
+
+    def do_post(self, api_group, resource_kind, name=None, namespace=None, body=None):
+        resource = self.get_resource(api_group, resource_kind)
+        path = self.build_path(api_group, resource, name=name, namespace=namespace)
+        response, status, _ = self._api_client.call_api(path, "POST", body=body)
+
+        if status != 200:
+            raise Exception(f"{status} - {response.data}")
+
+    def do_delete(self, api_group, resource_kind, name, namespace=None):
+        resource = self.get_resource(api_group, resource_kind)
+        path = self.build_path(api_group, resource, name=name, namespace=namespace)
+        response, status, _ = self.api_client.call_api(path, "DELETE")
+        if status != 200:
+            raise Exception(f"{status} - {response.data}")
+        return response.data
+
+    def do_patch(
+        self,
+        api_group,
+        resource_kind,
+        name,
+        namespace=None,
+        body=None,
+        content_type=None,
+    ):
+        resource = self.get_resource(api_group, resource_kind)
+        path = self.build_path(api_group, resource, name=name, namespace=namespace)
+
+        headers = {}
+        if content_type:
+            headers["Content-Type"] = content_type
+
+        response, status, _ = self.api_client.call_api(
+            path, "PATCH", body=body, header_params=headers
+        )
+
+        if status != 200:
+            raise Exception(f"{status} - {response.data}")
+
+        return response.data

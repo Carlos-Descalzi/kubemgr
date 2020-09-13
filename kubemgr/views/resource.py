@@ -51,61 +51,16 @@ class ResourceListModel(AsyncListModel):
 
     namespace = property(get_namespace, set_namespace)
 
-    """
-    def get_api_client_and_resource(self):
-        cluster = self._application.selected_cluster
-        if cluster and cluster.api_client:
-            try:
-                return (
-                    cluster.api_client,
-                    cluster.get_resource(self._api_group, self._resource_kind),
-                )
-            except Exception as e:
-                logging.error(
-                    (
-                        f"unable to get client, resource for {self._api_group}, {self._resource_kind} - {e}"
-                        + traceback.format_exc()
-                    )
-                )
-        return None, None
-    """
-
-    def _build_path(self, resource, name=None, namespace=None):
-        cluster = self._application.selected_cluster
-        return cluster.build_path(self._api_group, resource, name, namespace)
-
-    def update(self, item, contents):
-
-        if self.enabled:
-            api_client = self._cluster.api_client
-            resource = self._cluster.get_resource(self._api_group, self._resource_kind)
-            path = self._build_path(
-                resource, item["metadata"]["name"], item["metadata"]["namespace"]
-            )
-            logging.info(path)
-            logging.info(contents)
-            response, status, _ = api_client.call_api(
-                path,
-                "PATCH",
-                body=contents,
-                header_params={"Content-Type": "application/json-patch+json"},
-            )
-            logging.info(f"{response},{status}")
-
     def fetch_data(self):
         self._items = []
         if self.enabled:
-            api_client = self._cluster.api_client
-            resource = self._cluster.get_resource(self._api_group, self._resource_kind)
-
-            if api_client:
-                path = self._build_path(resource, namespace=self.namespace)
-                result = api_client.call_api(path, "GET", _preload_content=False)
-                response, status_code, _ = result
-                if status_code == 200:
-                    self._items = json.loads(response.data.decode())["items"]
-                else:
-                    logging.error("Unable to get data: {status_code} - {response.data}")
+            try:
+                result = self._cluster.do_get(
+                    self._api_group, self._resource_kind, namespace=self._namespace
+                )
+                self._items = json.loads(result.decode())["items"]
+            except Exception as e:
+                logging.error(e)
 
 
 class ResourceListView(ListView):
@@ -135,25 +90,7 @@ class ResourceListView(ListView):
         return item["metadata"]["name"]
 
     def on_key_press(self, input_key):
-        if self._model.enabled:
-            if input_key == ord("e"):
-                self._edit_selected()
-            elif input_key in self._key_handlers:
-                self._key_handlers[input_key](self)
-            else:
-                super().on_key_press(input_key)
+        if self._model.enabled and input_key in self._key_handlers:
+            self._key_handlers[input_key](self)
         else:
             super().on_key_press(input_key)
-
-    def _edit_selected(self):
-        current = self.current_item
-        if current:
-            self._edit_item(current)
-
-    def _edit_item(self, item):
-        contents = yaml.dump(item, Dumper=yaml.SafeDumper)
-        new_contents = self._application.edit_file(contents, "yaml")
-        if new_contents:
-            new_yaml = yaml.load(io.StringIO(new_contents), Loader=yaml.SafeLoader)
-            json_content = json.dumps(new_yaml)
-            self._model.update(item, json_content)

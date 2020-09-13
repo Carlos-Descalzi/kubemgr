@@ -1,8 +1,8 @@
 import logging
 import yaml
 
-class ViewResource:
 
+class ViewResource:
     def __init__(self, app):
         self._app = app
 
@@ -11,4 +11,3 @@ class ViewResource:
         if current:
             result = yaml.dump(current, Dumper=yaml.SafeDumper)
             self._app.show_file(result, "yaml")
-

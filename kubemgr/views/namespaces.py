@@ -43,13 +43,12 @@ class NamespacesListModel(AsyncListModel):
 
     def fetch_data(self):
         if self._cluster and self._cluster.connected:
-            api_client = self._cluster.api_client
-
-            response, status, _ = self._cluster.api_client.call_api(
-                "/api/v1/namespaces", "GET", _preload_content=False
-            )
-            namespaces = json.loads(response.data.decode())["items"]
-            self._items = [NsItem(i) for i in namespaces]
+            try:
+                result = self._cluster.do_simple_get("/api/v1/namespaces")
+                namespaces = json.loads(result.decode())["items"]
+                self._items = [NsItem(i) for i in namespaces]
+            except Exception as e:
+                logging.error(e)
         else:
             self._items = []
 

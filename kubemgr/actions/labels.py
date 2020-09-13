@@ -1,6 +1,4 @@
-
 class ShowNodeLabels:
-
     def __init__(self, app):
         self._app = app
 
@@ -14,4 +12,3 @@ class ShowNodeLabels:
             + [""]
         )
         self._app.show_text_popup(labels_text)
-

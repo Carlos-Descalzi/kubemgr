@@ -3,6 +3,7 @@ from kubemgr.util.ui import FileChooser, Rect
 import yaml
 import traceback
 
+
 class CreateResource:
     def __init__(self, app):
         self._app = app
@@ -20,21 +21,25 @@ class CreateResource:
 
     def _create_resource(self, yaml_file_path):
         try:
-
+            cluster = self._app.selected_cluster
             with open(yaml_file_path, "r") as f:
                 resources = yaml.full_load_all(f)
-
                 for resource in resources:
-                    cluster = self._app.selected_cluster
-                    api_client = cluster.api_client
-                    path = cluster.build_path_for_resource(
+                    cluster.do_post(
                         resource["apiVersion"],
                         resource["kind"],
-                        resource["metadata"].get("namespace"),
-                        None,
+                        namespace=resource["metadata"].get("namespace"),
+                        body=resource,
                     )
-                    logging.info(f"Path: {path}")
-                    response = api_client.call_api(path, "POST", body=resource)
-                    logging.info(response)
+                    # api_client = cluster.api_client
+                    # path = cluster.build_path_for_resource(
+                    #    resource["apiVersion"],
+                    #    resource["kind"],
+                    #    resource["metadata"].get("namespace"),
+                    #    None,
+                    # )
+                    # logging.info(f"Path: {path}")
+                    # response = api_client.call_api(path, "POST", body=resource)
+                    # logging.info(response)
         except Exception as e:
-            logging.error(f"{e} {traceback.format_exc()}")
+            self._app.show_error(e)
