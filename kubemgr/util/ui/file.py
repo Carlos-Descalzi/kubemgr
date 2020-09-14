@@ -86,7 +86,7 @@ class FileChooser(View):
         super().__init__(rect)
         self._file_list_model = FileListModel(path or os.getcwd(), file_filter)
         self._file_list_view = FileListView(model=self._file_list_model)
-        self._file_list_view.set_on_select(self._on_item_selected)
+        self._file_list_view.on_select.add(self._on_item_selected)
         self._on_file_selected = None
 
     def set_application(self, application):
@@ -96,7 +96,7 @@ class FileChooser(View):
     def contains(self, child):
         return self._file_list_view == child
 
-    def _on_item_selected(self, item):
+    def _on_item_selected(self, source, item):
         if item.isdir:
             self._file_list_model.go_into(item)
             self._selected_index = -1
@@ -109,11 +109,11 @@ class FileChooser(View):
         self._file_list_view.on_key_press(input_key)
 
     def _notify_file_selected(self, path):
-        if self._on_file_selected:
-            self._on_file_selected(path)
+        self._on_file_selected(path)
 
-    def set_on_file_selected(self, on_file_selected):
-        self._on_file_selected = on_file_selected
+    @property
+    def on_file_selected(self):
+        return self._on_file_selected
 
     def update(self):
         rect = self._rect.copy()

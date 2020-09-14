@@ -7,6 +7,7 @@ from typing import List, Any
 
 class AsyncListModel(ListModel, metaclass=ABCMeta):
     def __init__(self, application, periodic=True):
+        super().__init__()
         self._application = application
         self._periodic = periodic
         self._items = []

@@ -6,6 +6,7 @@ from kubernetes.client.rest import ApiException
 import json
 import yaml
 import threading
+from .util.ui.listener import ListenerHandler
 
 
 class Cluster:
@@ -27,14 +28,16 @@ class Cluster:
         self._connection_error = None
         self._resources = {}
         self._connection_thread = None
-        self._on_connect_handler = None
-        self._on_error_handler = None
+        self._on_connect= ListenerHandler(self)
+        self._on_error= ListenerHandler(self)
 
-    def set_on_connect_handler(self, handler):
-        self._on_connect_handler = handler
+    @property
+    def on_connect(self):
+        return self._on_connect
 
-    def set_on_error_handler(self, handler):
-        self._on_error_handler = handler
+    @property
+    def on_error(self):
+        return self._on_error
 
     @property
     def connected(self):
@@ -71,13 +74,11 @@ class Cluster:
     def _do_connect(self):
         try:
             self._create_connection()
-            if self._on_connect_handler:
-                self._on_connect_handler(self)
+            self._on_connect()
         except Exception as e:
             logging.error(f"Error connecting to cluster {e}")
             self._connection_error = e
-            if self._on_error_handler:
-                self._on_error_handler(self, e)
+            self._on_error(e)
 
     def build_path_for_resource(
         self, api_group, resource_kind, namespace=None, name=None

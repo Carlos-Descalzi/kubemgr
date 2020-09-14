@@ -13,7 +13,7 @@ class CreateResource:
             chooser = FileChooser(
                 rect=Rect(width=70, height=20), file_filter=lambda p, f: ".yaml" in f
             )
-            chooser.set_on_file_selected(self._file_selected)
+            chooser.on_file_selected.add(self._file_selected)
             self._app.open_popup(chooser)
 
     def _file_selected(self, path):

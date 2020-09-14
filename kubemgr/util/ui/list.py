@@ -6,30 +6,19 @@ import sys
 import tty
 from abc import ABCMeta, abstractmethod
 import logging
-
+from .listener import ListenerHandler
 
 class ListModel(metaclass=ABCMeta):
 
-    _on_item_added = None
-    _on_item_removed = None
-    _on_item_changed = None
-    _on_list_changed = None
+    def __init__(self):
+        self._on_list_changed = ListenerHandler(self)
 
-    def set_on_item_added(self, on_item_added):
-        self._on_item_added = on_item_added
-
-    def set_on_item_removed(self, on_item_removed):
-        self._on_item_removed = on_item_removed
-
-    def set_on_item_changed(self, on_item_changed):
-        self._on_item_changed = on_item_changed
-
-    def set_on_list_changed(self, on_list_changed):
-        self._on_list_changed = on_list_changed
+    @property
+    def on_list_changed(self):
+        return self._on_list_changed
 
     def notify_list_changed(self):
-        if self._on_list_changed:
-            self._on_list_changed(self)
+        self._on_list_changed()
 
     @abstractmethod
     def get_item_count(self):
@@ -48,7 +37,7 @@ class ListView(View):
         self._selectable = selectable
         self._current_index = -1
         self._selected_index = -1
-        self._on_select = None
+        self._on_select = ListenerHandler(self)
         self.set_model(model)
 
     def set_selectable(self, selectable):
@@ -59,13 +48,9 @@ class ListView(View):
 
     selectable = property(get_selectable, set_selectable)
 
-    def set_on_select(self, listener):
-        self._on_select = listener
-
-    def get_on_select(self):
+    @property
+    def on_select(self):
         return self._on_select
-
-    on_select = property(get_on_select, set_on_select)
 
     def set_selected_index(self, index):
         self._selected_index = index
@@ -87,18 +72,12 @@ class ListView(View):
 
     def set_model(self, model):
         if self._model:
-            self._model.set_on_item_added(None)
-            self._model.set_on_item_removed(None)
-            self._model.set_on_item_changed(None)
-            self._model.set_on_list_changed(None)
+            self._model.on_list_changed.remove(self._model_changed)
 
         self._model = model
 
         if self._model:
-            self._model.set_on_item_added(self._model_changed)
-            self._model.set_on_item_removed(self._model_changed)
-            self._model.set_on_item_changed(self._model_changed)
-            self._model.set_on_list_changed(self._model_changed)
+            self._model.on_list_changed.add(self._model_changed)
 
     def _model_changed(self, *_):
         self.queue_update()
@@ -196,6 +175,5 @@ class ListView(View):
             return self._model.get_item(self._selected_index)
 
     def _notify_selected(self, index):
-        if self._on_select:
-            item = self._model.get_item(index) if index != -1 else None
-            self._on_select(item)
+        item = self._model.get_item(index) if index != -1 else None
+        self._on_select(item)

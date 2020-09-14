@@ -66,7 +66,7 @@ class MainApp(Application):
         self._clusters_view = ClusterListView(
             model=self._clusters_model, selectable=True
         )
-        self._clusters_view.set_on_select(self.set_selected_cluster)
+        self._clusters_view.on_select.add(self.set_selected_cluster)
         self._nodes_model = ResourceListModel(self, "Node")
         self._nodes_view = ResourceListView(model=self._nodes_model)
 
@@ -74,7 +74,7 @@ class MainApp(Application):
         self._namespaces_view = NamespacesListView(
             model=self._namespaces_model, selectable=True
         )
-        self._namespaces_view.set_on_select(self._on_namespace_selected)
+        self._namespaces_view.on_select.add(self._on_namespace_selected)
 
         self._pods_model = ResourceListModel(self, "Pod")
         self._pods_view = ResourceListView(model=self._pods_model)
@@ -166,7 +166,7 @@ class MainApp(Application):
     def get_selected_cluster(self):
         return self._clusters_view.get_selected_item()
 
-    def set_selected_cluster(self, cluster):
+    def set_selected_cluster(self, source, cluster):
 
         if cluster.connection_error:
             self.show_error(cluster.connection_error)
@@ -248,7 +248,7 @@ class MainApp(Application):
     def _on_finish(self):
         self._task_executor.finish()
 
-    def _on_namespace_selected(self, item):
+    def _on_namespace_selected(self, source, item):
         namespace = item.name if item.selected else None
         models = [self._pods_model] + [tab.model for tab in self._custom_tabs]
         for model in models:

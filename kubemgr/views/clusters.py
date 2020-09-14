@@ -4,15 +4,21 @@ import logging
 
 
 class ClustersListModel(ListModel):
+    _clusters = None
     def __init__(self, application):
+        super().__init__()
         self._application = application
-        self._clusters = None
+        self.set_clusters([])
 
     def set_clusters(self, clusters=[]):
+        if self._clusters:
+            for cluster in self._clusters:
+                cluster.on_connect.remove(self._connected)
+                cluster.on_error.remove(self._error)
         self._clusters = sorted(self._application.clusters, key=lambda x: x.name)
         for cluster in self._clusters:
-            cluster.set_on_connect_handler(self._connected)
-            cluster.set_on_error_handler(self._error)
+            cluster.on_connect.add(self._connected)
+            cluster.on_error.add(self._error)
 
     def _connected(self, cluster):
         self.notify_list_changed()
