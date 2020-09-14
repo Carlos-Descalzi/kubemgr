@@ -104,13 +104,13 @@ class MainApp(Application):
 
         tab_width = max_width - (h_divider_pos + 1)
 
-        self.add_component(
-            TitledView(
-                rect=Rect(1, 1, h_divider_pos, v_clusters_height),
-                title="Clusters",
-                inner=self._clusters_view,
-            )
+        clusters_title = TitledView(
+            rect=Rect(1, 1, h_divider_pos, v_clusters_height),
+            title="Clusters",
+            inner=self._clusters_view,
         )
+
+        self.add_component(clusters_title)
         self.add_component(
             TitledView(
                 rect=Rect(1, v_nodes_start, h_divider_pos, v_nodes_height),
@@ -159,6 +159,8 @@ class MainApp(Application):
         self._clusters_model.set_clusters(self._clusters)
         if self._clusters:
             self._clusters_view.set_selected_index(0)
+
+        self.set_focused_view(clusters_title)
 
         if first_time:
             help_action()

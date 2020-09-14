@@ -125,6 +125,13 @@ class Application:
             active = self._components[self._focused_index]
             active.set_focused(True)
 
+    def set_focused_view(self, view):
+        active = self._components[self._focused_index]
+        active.set_focused(False)
+
+        self._focused_index = self._components.index(view)
+        view.set_focused(True)
+
     def _send_key_event(self, input_key):
         if self._active_popup:
             self._active_popup.on_key_press(input_key)
