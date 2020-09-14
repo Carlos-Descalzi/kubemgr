@@ -16,7 +16,7 @@ class CreateResource:
             chooser.on_file_selected.add(self._file_selected)
             self._app.open_popup(chooser)
 
-    def _file_selected(self, path):
+    def _file_selected(self, source, path):
         self._app.close_popup()
         self._create_resource(path)
 
@@ -32,15 +32,5 @@ class CreateResource:
                         namespace=resource["metadata"].get("namespace"),
                         body=resource,
                     )
-                    # api_client = cluster.api_client
-                    # path = cluster.build_path_for_resource(
-                    #    resource["apiVersion"],
-                    #    resource["kind"],
-                    #    resource["metadata"].get("namespace"),
-                    #    None,
-                    # )
-                    # logging.info(f"Path: {path}")
-                    # response = api_client.call_api(path, "POST", body=resource)
-                    # logging.info(response)
         except Exception as e:
             self._app.show_error(e)

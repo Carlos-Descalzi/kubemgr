@@ -2,7 +2,7 @@ from .view import View
 from .list import ListView, ListModel
 import os
 from kubemgr.util import ansi
-
+from .listener import ListenerHandler
 
 class FileItem:
     def __init__(self, parent, filename, isdir):
@@ -20,6 +20,7 @@ class FileItem:
 
 class FileListModel(ListModel):
     def __init__(self, path, file_filter=None):
+        super().__init__()
         self._path = os.path.abspath(path)
         self._file_filter = file_filter or self._default_filter
         self._items = []
@@ -87,7 +88,7 @@ class FileChooser(View):
         self._file_list_model = FileListModel(path or os.getcwd(), file_filter)
         self._file_list_view = FileListView(model=self._file_list_model)
         self._file_list_view.on_select.add(self._on_item_selected)
-        self._on_file_selected = None
+        self._on_file_selected = ListenerHandler(self)
 
     def set_application(self, application):
         super().set_application(application)
