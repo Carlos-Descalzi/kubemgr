@@ -331,7 +331,9 @@ class MainApp(Application):
             with open(clusters_config_file, "w") as f:
                 f.write(CLUSTERS_CONFIG_TEMPLATE)
 
+def main():
+    mgr = MainApp(os.path.join(os.environ["HOME"],".kubemgr"))
+    mgr.main_loop()
 
 if __name__ == "__main__":
-    mgr = MainApp("/home/carlos/.kubemgr")
-    mgr.main_loop()
+    main()

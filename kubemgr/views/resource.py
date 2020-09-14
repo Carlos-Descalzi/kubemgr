@@ -33,6 +33,7 @@ class ResourceListModel(AsyncListModel):
 
     def set_cluster(self, cluster):
         self._cluster = cluster
+        self.refresh()
 
     def get_cluster(self):
         return self._cluster
