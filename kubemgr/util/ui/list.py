@@ -8,8 +8,8 @@ from abc import ABCMeta, abstractmethod
 import logging
 from .listener import ListenerHandler
 
-class ListModel(metaclass=ABCMeta):
 
+class ListModel(metaclass=ABCMeta):
     def __init__(self):
         self._on_list_changed = ListenerHandler(self)
 

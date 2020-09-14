@@ -5,6 +5,7 @@ import logging
 
 class ClustersListModel(ListModel):
     _clusters = None
+
     def __init__(self, application):
         super().__init__()
         self._application = application

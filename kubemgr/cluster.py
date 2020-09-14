@@ -28,8 +28,8 @@ class Cluster:
         self._connection_error = None
         self._resources = {}
         self._connection_thread = None
-        self._on_connect= ListenerHandler(self)
-        self._on_error= ListenerHandler(self)
+        self._on_connect = ListenerHandler(self)
+        self._on_error = ListenerHandler(self)
 
     @property
     def on_connect(self):
@@ -169,7 +169,7 @@ class Cluster:
         path = self.build_path(api_group, resource, name=name, namespace=namespace)
         response, status, _ = self._api_client.call_api(path, "POST", body=body)
 
-        if status not in [200,201]:
+        if status not in [200, 201]:
             raise Exception(f"{status} - {response}")
 
     def do_delete(self, api_group, resource_kind, name, namespace=None):

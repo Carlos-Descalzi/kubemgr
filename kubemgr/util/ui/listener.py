@@ -1,5 +1,3 @@
-
-
 class ListenerHandler:
     def __init__(self, source):
         self._source = source
