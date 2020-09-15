@@ -42,6 +42,7 @@ from .actions import (
 from .cluster import Cluster
 from .texts import (
     CLUSTERS_CONFIG_TEMPLATE,
+    CLUSTERS_CONFIG_EMPTY_TEMPLATE,
     KUBEMGR_DEFAUL_CONFIG_TEMPLATE,
     HELP_CONTENTS,
 )
@@ -292,6 +293,26 @@ class MainApp(Application):
         parser.read(general_config_file)
         self._config = parser
 
+    def _make_default_cluster_config(self):
+
+        cluster_name = None
+        cluster_file = os.environ.get("KUBECONFIG")
+
+        if cluster_file:
+            cluster_name = "Default cluster"
+        else:
+            path = os.path.join(os.environ["HOME"], ".kube", "config")
+            if os.path.isfile(path):
+                cluster_file = path
+                cluster_name = "Local cluster"
+
+        if not (cluster_name or cluster_file):
+            return CLUSTERS_CONFIG_EMPTY_TEMPLATE
+
+        return CLUSTERS_CONFIG_TEMPLATE.format(
+            cluster_name=cluster_name, cluster_file=cluster_file
+        )
+
     def _read_colors_config(self, config_dir):
         colors_config_file = os.path.join(config_dir, "colors.ini")
 
@@ -316,20 +337,18 @@ class MainApp(Application):
     def _read_clusters_config(self, config_dir):
         clusters_config_file = os.path.join(config_dir, "clusters.ini")
 
-        if os.path.isfile(clusters_config_file):
-            parser = configparser.ConfigParser()
-            parser.read(clusters_config_file)
-
-            for cluster_name in parser.sections():
-                config = parser[cluster_name]
-                cluster = Cluster.from_config(self, cluster_name, config)
-                self._clusters.append(cluster)
-                cluster.connect()
-
-        else:
-            # Write a default empty clusters file.
+        if not os.path.isfile(clusters_config_file):
             with open(clusters_config_file, "w") as f:
-                f.write(CLUSTERS_CONFIG_TEMPLATE)
+                f.write(self._make_default_cluster_config())
+
+        parser = configparser.ConfigParser()
+        parser.read(clusters_config_file)
+
+        for cluster_name in parser.sections():
+            config = parser[cluster_name]
+            cluster = Cluster.from_config(self, cluster_name, config)
+            self._clusters.append(cluster)
+            cluster.connect()
 
 
 def main():
