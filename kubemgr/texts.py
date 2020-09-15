@@ -19,6 +19,8 @@ viewer=/usr/bin/view
 podstab.format=item.metadata.name:MAX,item.status.phase:>10
 
 # Custom tabs
+# You can add more tabs by specifying a title, resource kind and group_version (AKA version). 
+# The prefix (tabN) is just for differentiating them.
 tab1.title=Cronjobs
 tab1.kind=CronJob
 tab1.group_version=batch/v1beta1
@@ -29,7 +31,7 @@ tab2.group_version=batch/v1
 
 tab3.title=Services
 tab3.kind=Service
-tab3.group_version=api/v1
+tab3.group_version=v1
 
 tab4.title=Deployments
 tab4.kind=Deployment
@@ -41,11 +43,11 @@ tab5.group_version=apps/v1
 
 tab6.title=ConfigMaps
 tab6.kind=ConfigMap
-tab6.group_version=api/v1
+tab6.group_version=v1
 
 tab7.title=Secrets
 tab7.kind=Secret
-tab7.group_version=api/v1
+tab7.group_version=v1
 """
 HELP_CONTENTS = f"""
 {ansi.BOLD}Help:{ansi.RESET}
