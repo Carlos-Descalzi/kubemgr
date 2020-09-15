@@ -199,7 +199,5 @@ class Cluster:
             path, "PATCH", body=body, header_params=headers
         )
 
-        if status != 200:
-            raise Exception(f"{status} - {response.data}")
-
-        return response.data
+        if status not in [200, 201]:
+            raise Exception(f"{status} - {response}")

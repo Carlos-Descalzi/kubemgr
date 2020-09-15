@@ -12,17 +12,19 @@ class EditResource:
         item = target.current_item
         cluster = self._app.selected_cluster
         if item and cluster:
+            item["kind"] = target.model.resource_kind
+            item["apiVersion"] = target.model.api_group
             contents = yaml.dump(item, Dumper=yaml.SafeDumper)
             new_contents = self._app.edit_file(contents, "yaml")
             if new_contents:
-                new_yaml = yaml.load(io.StringIO(new_contents), Loader=yaml.SafeLoader)
-                json_content = json.dumps(new_yaml)
-                self.update(cluster, target, item, json_content)
+                new_json = self._to_dict(new_contents)
+                self._update(cluster, target, item, new_json)
 
-    def update(self, cluster, target, item, contents):
+    def _to_dict(self, yaml_string):
+        return yaml.load(io.StringIO(yaml_string), Loader=yaml.SafeLoader)
 
+    def _update(self, cluster, target, item, contents):
         model = target.model
-
         try:
             cluster.do_patch(
                 model.api_group,
@@ -30,7 +32,7 @@ class EditResource:
                 item["metadata"]["name"],
                 item["metadata"]["namespace"],
                 body=contents,
-                content_type="application/json-patch+json",
+                content_type="application/merge-patch+json",
             )
         except Exception as e:
             self._app.show_error(e)
