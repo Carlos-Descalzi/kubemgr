@@ -14,8 +14,10 @@ from kubernetes import client, config
 from kubernetes.client import configuration
 from collections import defaultdict
 from abc import ABCMeta, abstractmethod
-from .util import ansi, misc
-from .util.ui import (
+from .util import misc
+from cdtui import (
+    ansi,
+    kbd,
     COLORS,
     Application,
     Rect,
@@ -24,12 +26,13 @@ from .util.ui import (
     TextView,
     FileChooser,
     QuestionDialog,
+    ListView
 )
 from .util.executor import TaskExecutor
-from .util import kbd
 from .views.clusters import ClusterListView, ClustersListModel
 from .views.namespaces import NamespacesListModel, NamespacesListView
 from .views.resource import ResourceListModel, ResourceListView
+from .views.renderer import ItemRenderer
 from .actions import (
     CreateResource,
     ShowLogs,
@@ -45,8 +48,8 @@ from .texts import (
     CLUSTERS_CONFIG_EMPTY_TEMPLATE,
     KUBEMGR_DEFAUL_CONFIG_TEMPLATE,
     HELP_CONTENTS,
+    POD_TEMPLATE
 )
-
 
 class TabInfo:
     def __init__(self, title, model, view):
@@ -54,13 +57,13 @@ class TabInfo:
         self.model = model
         self.view = view
 
-
 class MainApp(Application):
     def __init__(self, config_dir):
         super().__init__()
         self._task_executor = TaskExecutor()
         self._clusters = []
         self._config = {}
+        self._templates = {}
         first_time = self._read_configuration(config_dir)
 
         self._clusters_model = ClustersListModel(self)
@@ -70,15 +73,18 @@ class MainApp(Application):
         self._clusters_view.on_select.add(self.set_selected_cluster)
         self._nodes_model = ResourceListModel(self, "Node")
         self._nodes_view = ResourceListView(model=self._nodes_model)
+        self._nodes_view.set_item_renderer(lambda x,y:y['metadata']['name'])
 
         self._namespaces_model = NamespacesListModel(self)
         self._namespaces_view = NamespacesListView(
-            model=self._namespaces_model, selectable=True
+            model=self._namespaces_model
         )
         self._namespaces_view.on_select.add(self._on_namespace_selected)
 
+        self._item_renderer = ItemRenderer(self)
         self._pods_model = ResourceListModel(self, "Pod")
         self._pods_view = ResourceListView(model=self._pods_model)
+        self._pods_view.set_item_renderer(self._item_renderer)
 
         self._custom_tabs = []
 
@@ -88,10 +94,8 @@ class MainApp(Application):
             if tabname != "podstab":
                 model = ResourceListModel(self, config["kind"], config["group_version"])
                 view = ResourceListView(model=model)
-                view.set_item_format(config.get("format"))
                 self._custom_tabs.append(TabInfo(config["title"], model, view))
-            else:
-                self._pods_view.set_item_format(config.get("format"))
+                view.set_item_renderer(self._item_renderer)
 
         max_height, max_width = ansi.terminal_size()
 
@@ -126,7 +130,7 @@ class MainApp(Application):
                 inner=self._namespaces_view,
             )
         )
-        tabs = TabbedView(rect=Rect(h_divider_pos + 1, 1, tab_width, 30))
+        tabs = TabbedView(rect=Rect(h_divider_pos + 1, 1, tab_width, max_height))
 
         tabs.add_tab("Pods", self._pods_view)
         for tab in self._custom_tabs:
@@ -138,6 +142,7 @@ class MainApp(Application):
         view_action = ViewResource(self)
         edit_action = EditResource(self)
         help_action = ShowHelp(self)
+
 
         self.set_key_handler(kbd.keystroke_from_str("h"), help_action)
         self.set_key_handler(kbd.keystroke_from_str("c"), CreateResource(self))
@@ -185,7 +190,7 @@ class MainApp(Application):
     def show_error(self, error):
         logging.error(error)
         error_str = self._format_error(error)
-        self.show_text_popup(error_str.split("\n"))
+        self.show_text_popup(error_str)
 
     @property
     def clusters(self):
@@ -229,7 +234,7 @@ class MainApp(Application):
             subprocess.run([viewer, tf.name])
             self.refresh()
         else:
-            self.show_text_popup(text.split("\n"))
+            self.show_text_popup(text)
 
     def edit_file(self, text, format_hint=None):
         editor = self.get_general_config().get("editor")
@@ -279,6 +284,7 @@ class MainApp(Application):
         self._read_general_config(config_dir)
         self._read_colors_config(config_dir)
         self._read_clusters_config(config_dir)
+        self._read_templates(config_dir)
 
         return first_time
 
@@ -349,6 +355,25 @@ class MainApp(Application):
             cluster = Cluster.from_config(self, cluster_name, config)
             self._clusters.append(cluster)
             cluster.connect()
+
+    def _read_templates(self, config_dir):
+        templates_dir = os.path.join(config_dir,'templates')
+
+        if not os.path.isdir(templates_dir):
+            os.makedirs(templates_dir)
+            with open(os.path.join(templates_dir,'Pod.tpl'),'w') as f:
+                f.write(POD_TEMPLATE)
+
+        templates = {}
+        for fname in os.listdir(templates_dir):
+            if fname[-4:] == '.tpl':
+                logging.info(fname)
+                try:
+                    with open(os.path.join(templates_dir,fname),'r') as f:
+                        templates[fname.replace('.tpl','')] = f.read()
+                except Exception as e:
+                    logging.error(f'Error loading template {fname} - {e}')
+        self._templates = templates
 
 
 def main():

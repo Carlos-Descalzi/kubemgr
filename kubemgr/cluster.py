@@ -6,7 +6,7 @@ from kubernetes.client.rest import ApiException
 import json
 import yaml
 import threading
-from .util.ui.listener import ListenerHandler
+from cdtui import ListenerHandler
 
 
 class Cluster:

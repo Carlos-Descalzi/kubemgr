@@ -1,5 +1,4 @@
-from kubemgr.util.ui import ListModel, ListView
-from ..util import ansi
+from cdtui import ansi, ListModel, ListView
 import logging
 
 

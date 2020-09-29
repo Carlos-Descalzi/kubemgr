@@ -1,6 +1,5 @@
-from kubemgr.util.ui import Rect, TextView, ListView
+from cdtui import ansi,Rect, TextView, ListView
 from kubernetes import client
-from ..util import ansi
 from .util import AsyncListModel
 from .format import Formatter
 from abc import ABCMeta, abstractclassmethod
@@ -70,25 +69,8 @@ class ResourceListView(ListView):
         self._key_handlers = {}
         self._formatter = None
 
-    def set_item_format(self, item_format):
-        self._formatter = Formatter(item_format) if item_format else None
-
     def set_key_handler(self, key, handler):
         self._key_handlers[key] = handler
-
-    def render_item(self, item, current, selected):
-        width = self._rect.width
-        buff = ansi.begin()
-
-        if self.focused and current:
-            buff.underline()
-
-        return str(buff.write(self.do_render_item(item, width)).reset())
-
-    def do_render_item(self, item, width):
-        if self._formatter:
-            return self._formatter.format(item, width)
-        return item["metadata"]["name"]
 
     def on_key_press(self, input_key):
         if self._model.enabled and input_key in self._key_handlers:

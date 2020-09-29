@@ -53,12 +53,17 @@ class NamespacesListModel(AsyncListModel):
 
 
 class NamespacesListView(ResourceListView):
+
+    def __init__(self, model):
+        super().__init__(model=model,selectable=True)
+        self.set_item_renderer(self._do_render_item)
+
     @property
     def current_item(self):
         item = super().current_item
         return item.namespace if item else None
 
-    def do_render_item(self, item, width):
+    def _do_render_item(self, view, item):
         width = self._rect.width
         name = item.name[0 : width - 4]
         name += " " * max(0, ((width - 4) - len(name)))

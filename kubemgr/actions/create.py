@@ -1,5 +1,5 @@
 import logging
-from kubemgr.util.ui import FileChooser, Rect
+from cdtui import FileChooser, Rect
 import yaml
 import traceback
 

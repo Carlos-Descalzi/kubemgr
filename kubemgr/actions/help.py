@@ -6,4 +6,4 @@ class ShowHelp:
         self._app = app
 
     def __call__(self, *_):
-        self._app.show_text_popup(HELP_CONTENTS.split("\n"))
+        self._app.show_text_popup(HELP_CONTENTS)

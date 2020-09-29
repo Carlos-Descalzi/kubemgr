@@ -1,4 +1,4 @@
-from kubemgr.util.ui import ListModel
+from cdtui import ListModel
 from abc import ABCMeta, abstractmethod
 import logging
 import json
