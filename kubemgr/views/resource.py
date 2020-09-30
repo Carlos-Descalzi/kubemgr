@@ -1,4 +1,4 @@
-from cdtui import ansi,Rect, TextView, ListView
+from cdtui import ansi, Rect, TextView, ListView
 from kubernetes import client
 from .util import AsyncListModel
 from .format import Formatter

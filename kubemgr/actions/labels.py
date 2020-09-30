@@ -6,7 +6,7 @@ class ShowNodeLabels:
         current = target.current_item
         labels = current["metadata"]["labels"]
         name = current["metadata"]["name"]
-        labels_text = '\n'.join( 
+        labels_text = "\n".join(
             [f"Labels for node {name}", "======================", ""]
             + [f"{k:50} : {v}" for k, v in labels.items()]
             + [""]

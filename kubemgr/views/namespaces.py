@@ -53,9 +53,8 @@ class NamespacesListModel(AsyncListModel):
 
 
 class NamespacesListView(ResourceListView):
-
     def __init__(self, model):
-        super().__init__(model=model,selectable=True)
+        super().__init__(model=model, selectable=True)
         self.set_item_renderer(self._do_render_item)
 
     @property

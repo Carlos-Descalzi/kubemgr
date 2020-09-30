@@ -26,7 +26,7 @@ from cdtui import (
     TextView,
     FileChooser,
     QuestionDialog,
-    ListView
+    ListView,
 )
 from .util.executor import TaskExecutor
 from .views.clusters import ClusterListView, ClustersListModel
@@ -48,14 +48,16 @@ from .texts import (
     CLUSTERS_CONFIG_EMPTY_TEMPLATE,
     KUBEMGR_DEFAUL_CONFIG_TEMPLATE,
     HELP_CONTENTS,
-    POD_TEMPLATE
+    POD_TEMPLATE,
 )
+
 
 class TabInfo:
     def __init__(self, title, model, view):
         self.title = title
         self.model = model
         self.view = view
+
 
 class MainApp(Application):
     def __init__(self, config_dir):
@@ -73,12 +75,10 @@ class MainApp(Application):
         self._clusters_view.on_select.add(self.set_selected_cluster)
         self._nodes_model = ResourceListModel(self, "Node")
         self._nodes_view = ResourceListView(model=self._nodes_model)
-        self._nodes_view.set_item_renderer(lambda x,y:y['metadata']['name'])
+        self._nodes_view.set_item_renderer(lambda x, y: y["metadata"]["name"])
 
         self._namespaces_model = NamespacesListModel(self)
-        self._namespaces_view = NamespacesListView(
-            model=self._namespaces_model
-        )
+        self._namespaces_view = NamespacesListView(model=self._namespaces_model)
         self._namespaces_view.on_select.add(self._on_namespace_selected)
 
         self._item_renderer = ItemRenderer(self)
@@ -142,7 +142,6 @@ class MainApp(Application):
         view_action = ViewResource(self)
         edit_action = EditResource(self)
         help_action = ShowHelp(self)
-
 
         self.set_key_handler(kbd.keystroke_from_str("h"), help_action)
         self.set_key_handler(kbd.keystroke_from_str("c"), CreateResource(self))
@@ -357,22 +356,22 @@ class MainApp(Application):
             cluster.connect()
 
     def _read_templates(self, config_dir):
-        templates_dir = os.path.join(config_dir,'templates')
+        templates_dir = os.path.join(config_dir, "templates")
 
         if not os.path.isdir(templates_dir):
             os.makedirs(templates_dir)
-            with open(os.path.join(templates_dir,'Pod.tpl'),'w') as f:
+            with open(os.path.join(templates_dir, "Pod.tpl"), "w") as f:
                 f.write(POD_TEMPLATE)
 
         templates = {}
         for fname in os.listdir(templates_dir):
-            if fname[-4:] == '.tpl':
+            if fname[-4:] == ".tpl":
                 logging.info(fname)
                 try:
-                    with open(os.path.join(templates_dir,fname),'r') as f:
-                        templates[fname.replace('.tpl','')] = f.read()
+                    with open(os.path.join(templates_dir, fname), "r") as f:
+                        templates[fname.replace(".tpl", "")] = f.read()
                 except Exception as e:
-                    logging.error(f'Error loading template {fname} - {e}')
+                    logging.error(f"Error loading template {fname} - {e}")
         self._templates = templates
 
 

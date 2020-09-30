@@ -91,7 +91,7 @@ HELP_CONTENTS = f"""
         UI colors and styles.
 """
 
-POD_TEMPLATE="""
+POD_TEMPLATE = """
 {% if item.status.phase == 'Running'%}
 \u001b[37m
 {% elif item.status.phase == 'Pending' %}
@@ -107,30 +107,30 @@ POD_TEMPLATE="""
 {{fill(item.status.phase,-12)}}
 \u001b[37m
 """
-CRONJOB_TEMPLATE="""
+CRONJOB_TEMPLATE = """
 {{fill(item.metadata.name,width-25)}}
 {{fill(item.spec.schedule,-15)}}
 {{fill(age(item.metadata.creationTimestamp),-10)}}
 """
 
-SERVICE_TEMPLATE="""
+SERVICE_TEMPLATE = """
 {{fill(item.metadata.name,width-35)}}
 {{fill(item.spec.type,-10)}}
 {{fill(item.spec.clusterIP,-15)}}
 {{fill(age(item.metadata.creationTimestamp),-10)}}
 """
-CONFIGMAP_TEMPLATE="""
+CONFIGMAP_TEMPLATE = """
 {{fill(item.metadata.name,width-30)}}
 {{fill(item.metadata.namespace,-20)}}
 {{fill(age(item.metadata.creationTimestamp),-10)}}
 """
-DAEMONSET_TEMPLATE="""
+DAEMONSET_TEMPLATE = """
 {{fill(item.metadata.name,width-15)}}
 {{fill(str(item.status.currentNumberScheduled),-2)}}/
 {{fill(str(item.status.desiredNumberScheduled),-2)}}
 {{fill(age(item.metadata.creationTimestamp),-10)}}
 """
-SECRET_TEMPLATE="""
+SECRET_TEMPLATE = """
 {{fill(item.metadata.name,width-30)}}
 {{fill(item.type,-20)}}
 {{fill(age(item.metadata.creationTimestamp),-10)}}
