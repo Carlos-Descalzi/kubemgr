@@ -14,6 +14,7 @@ from kubernetes import client, config
 from kubernetes.client import configuration
 from collections import defaultdict
 from abc import ABCMeta, abstractmethod
+from jinja2 import Template
 from .util import misc
 from cdtui import (
     ansi,
@@ -40,6 +41,7 @@ from .actions import (
     ShowHelp,
     DeleteResource,
     ViewResource,
+    CustomViewResource,
     EditResource,
 )
 from .cluster import Cluster
@@ -72,16 +74,17 @@ class MainApp(Application):
         self._clusters_view = ClusterListView(
             model=self._clusters_model, selectable=True
         )
+        self._item_renderer = ItemRenderer(self)
+
         self._clusters_view.on_select.add(self.set_selected_cluster)
         self._nodes_model = ResourceListModel(self, "Node")
         self._nodes_view = ResourceListView(model=self._nodes_model)
-        self._nodes_view.set_item_renderer(lambda x, y: y["metadata"]["name"])
+        self._nodes_view.set_item_renderer(self._item_renderer)
 
         self._namespaces_model = NamespacesListModel(self)
         self._namespaces_view = NamespacesListView(model=self._namespaces_model)
         self._namespaces_view.on_select.add(self._on_namespace_selected)
 
-        self._item_renderer = ItemRenderer(self)
         self._pods_model = ResourceListModel(self, "Pod")
         self._pods_view = ResourceListView(model=self._pods_model)
         self._pods_view.set_item_renderer(self._item_renderer)
@@ -140,6 +143,7 @@ class MainApp(Application):
 
         delete_action = DeleteResource(self)
         view_action = ViewResource(self)
+        custom_view_action = CustomViewResource(self)
         edit_action = EditResource(self)
         help_action = ShowHelp(self)
 
@@ -157,6 +161,7 @@ class MainApp(Application):
         for view in resource_views:
             view.set_key_handler(kbd.keystroke_from_str("d"), delete_action)
             view.set_key_handler(kbd.keystroke_from_str("v"), view_action)
+            view.set_key_handler(kbd.keystroke_from_str("V"), custom_view_action)
             view.set_key_handler(kbd.keystroke_from_str("e"), edit_action)
 
         self._task_executor.start()
@@ -225,10 +230,10 @@ class MainApp(Application):
         text_view = TextView(rect=rect, text=text)
         self.open_popup(text_view)
 
-    def show_file(self, text, format_hint=None):
+    def show_file(self, text, format_hint=None, force_internal_viewer=False):
         viewer = self.get_general_config().get("viewer")
 
-        if viewer:
+        if viewer and not force_internal_viewer:
             tf = misc.make_tempfile(text, format_hint)
             subprocess.run([viewer, tf.name])
             self.refresh()
@@ -283,7 +288,8 @@ class MainApp(Application):
         self._read_general_config(config_dir)
         self._read_colors_config(config_dir)
         self._read_clusters_config(config_dir)
-        self._read_templates(config_dir)
+        self._read_item_templates(config_dir)
+        self._read_detail_templates(config_dir)
 
         return first_time
 
@@ -355,8 +361,8 @@ class MainApp(Application):
             self._clusters.append(cluster)
             cluster.connect()
 
-    def _read_templates(self, config_dir):
-        templates_dir = os.path.join(config_dir, "templates")
+    def _read_item_templates(self, config_dir):
+        templates_dir = os.path.join(config_dir, "item-templates")
 
         if not os.path.isdir(templates_dir):
             # Create default templates
@@ -368,13 +374,28 @@ class MainApp(Application):
         templates = {}
         for fname in os.listdir(templates_dir):
             if fname[-4:] == ".tpl":
-                logging.info(fname)
                 try:
                     with open(os.path.join(templates_dir, fname), "r") as f:
-                        templates[fname.replace(".tpl", "")] = f.read()
+                        templates[fname.replace(".tpl", "")] = Template(f.read())
                 except Exception as e:
                     logging.error(f"Error loading template {fname} - {e}")
-        self._templates = templates
+        self._item_templates = templates
+
+    def _read_detail_templates(self, config_dir):
+        templates_dir = os.path.join(config_dir, "detail-templates")
+
+        if not os.path.isdir(templates_dir):
+            os.makedirs(templates_dir)
+
+        templates = {}
+        for fname in os.listdir(templates_dir):
+            if fname[-4:] == ".tpl":
+                try:
+                    with open(os.path.join(templates_dir, fname), "r") as f:
+                        templates[fname.replace(".tpl", "")] = Template(f.read())
+                except Exception as e:
+                    logging.error(f"Error loading template {fname} - {e}")
+        self._detail_templates = templates
 
 
 def main():

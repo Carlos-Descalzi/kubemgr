@@ -137,10 +137,10 @@ SECRET_TEMPLATE = """
 {{fill(age(item.metadata.creationTimestamp),-10)}}
 """
 TEMPLATES = {
-    'Pod' : POD_TEMPLATE,
-    'CronJob' : CRONJOB_TEMPLATE,
-    'Service' : SERVICE_TEMPLATE,
-    'ConfigMap' : CONFIGMAP_TEMPLATE,
-    'Secret' : SECRET_TEMPLATE,
-    'DaemonSet' : DAEMONSET_TEMPLATE
+    "Pod": POD_TEMPLATE,
+    "CronJob": CRONJOB_TEMPLATE,
+    "Service": SERVICE_TEMPLATE,
+    "ConfigMap": CONFIGMAP_TEMPLATE,
+    "Secret": SECRET_TEMPLATE,
+    "DaemonSet": DAEMONSET_TEMPLATE,
 }
