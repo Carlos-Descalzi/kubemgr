@@ -48,7 +48,7 @@ from .texts import (
     CLUSTERS_CONFIG_EMPTY_TEMPLATE,
     KUBEMGR_DEFAUL_CONFIG_TEMPLATE,
     HELP_CONTENTS,
-    POD_TEMPLATE,
+    TEMPLATES,
 )
 
 
@@ -359,9 +359,11 @@ class MainApp(Application):
         templates_dir = os.path.join(config_dir, "templates")
 
         if not os.path.isdir(templates_dir):
+            # Create default templates
             os.makedirs(templates_dir)
-            with open(os.path.join(templates_dir, "Pod.tpl"), "w") as f:
-                f.write(POD_TEMPLATE)
+            for name, template in TEMPLATES.items():
+                with open(os.path.join(templates_dir, f"{name}.tpl"), "w") as f:
+                    f.write(template)
 
         templates = {}
         for fname in os.listdir(templates_dir):

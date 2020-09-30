@@ -103,8 +103,9 @@ POD_TEMPLATE = """
 {% else %}
 \u001b[31m
 {% endif %}
-{{fill(item.metadata.name,width-12)}}
+{{fill(item.metadata.name,width-22)}}
 {{fill(item.status.phase,-12)}}
+{{fill(age(item.metadata.creationTimestamp),-10)}}
 \u001b[37m
 """
 CRONJOB_TEMPLATE = """
@@ -135,3 +136,11 @@ SECRET_TEMPLATE = """
 {{fill(item.type,-20)}}
 {{fill(age(item.metadata.creationTimestamp),-10)}}
 """
+TEMPLATES = {
+    'Pod' : POD_TEMPLATE,
+    'CronJob' : CRONJOB_TEMPLATE,
+    'Service' : SERVICE_TEMPLATE,
+    'ConfigMap' : CONFIGMAP_TEMPLATE,
+    'Secret' : SECRET_TEMPLATE,
+    'DaemonSet' : DAEMONSET_TEMPLATE
+}
