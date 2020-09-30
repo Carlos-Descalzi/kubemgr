@@ -86,6 +86,8 @@ def _do_fill(string, length):
 
 def _do_age(date_string):
     now = datetime.now(tz=timezone.utc)
+    if date_string[-1] == 'Z':
+        date_string = date_string.replace('Z','+0000')
     dt = datetime.strptime(date_string, "%Y-%m-%dT%H:%M:%S%z")
     delta = now - dt
 
