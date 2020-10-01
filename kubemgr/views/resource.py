@@ -10,9 +10,24 @@ import logging
 import json
 import traceback
 import io
+from jinja2 import Template
 
 _DEFAULT_PATH_PREFIX = "api/v1"
 
+class Filter:
+    def __init__(self, filter_string):
+        self._filter_string = filter_string
+        self._template = Template(filter_string)
+
+    @property
+    def filter_string(self):
+        return self._filter_string
+
+    def __call__(self, item):
+        result = self._template.render(item=item).strip()
+        logging.debug(f'Filter output: {result}')
+
+        return result == 'True'
 
 class ResourceListModel(AsyncListModel):
     def __init__(self, application, resource_kind, api_group=_DEFAULT_PATH_PREFIX):
@@ -21,6 +36,16 @@ class ResourceListModel(AsyncListModel):
         self._api_group = api_group
         self._cluster = None
         self._namespace = None
+        self._filter = None
+
+    def set_filter(self, filter):
+        self._filter = filter
+        self.refresh()
+
+    def get_filter(self):
+        return self._filter
+
+    filter = property(get_filter, set_filter)
 
     @property
     def api_group(self):
@@ -57,7 +82,10 @@ class ResourceListModel(AsyncListModel):
                 result = self._cluster.do_get(
                     self._api_group, self._resource_kind, namespace=self._namespace
                 )
-                return json.loads(result.decode())["items"]
+                items = json.loads(result.decode())["items"]
+                if self._filter:
+                    items = list(filter(self._filter, items))
+                return items
             except Exception as e:
                 logging.error(e)
         return []

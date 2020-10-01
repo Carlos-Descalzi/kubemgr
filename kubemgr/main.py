@@ -32,7 +32,7 @@ from cdtui import (
 from .util.executor import TaskExecutor
 from .views.clusters import ClusterListView, ClustersListModel
 from .views.namespaces import NamespacesListModel, NamespacesListView
-from .views.resource import ResourceListModel, ResourceListView
+from .views.resource import ResourceListModel, ResourceListView, Filter
 from .views.renderer import ItemRenderer
 from .actions import (
     CreateResource,
@@ -43,6 +43,7 @@ from .actions import (
     ViewResource,
     CustomViewResource,
     EditResource,
+    EditFilterAction
 )
 from .cluster import Cluster
 from .texts import (
@@ -64,10 +65,12 @@ class TabInfo:
 class MainApp(Application):
     def __init__(self, config_dir):
         super().__init__()
+        self._config_dir = config_dir
         self._task_executor = TaskExecutor()
         self._clusters = []
         self._config = {}
         self._templates = {}
+        self._filters = {}
         first_time = self._read_configuration(config_dir)
 
         self._clusters_model = ClustersListModel(self)
@@ -146,6 +149,7 @@ class MainApp(Application):
         custom_view_action = CustomViewResource(self)
         edit_action = EditResource(self)
         help_action = ShowHelp(self)
+        filter_action = EditFilterAction(self)
 
         self.set_key_handler(kbd.keystroke_from_str("h"), help_action)
         self.set_key_handler(kbd.keystroke_from_str("c"), CreateResource(self))
@@ -163,6 +167,11 @@ class MainApp(Application):
             view.set_key_handler(kbd.keystroke_from_str("v"), view_action)
             view.set_key_handler(kbd.keystroke_from_str("V"), custom_view_action)
             view.set_key_handler(kbd.keystroke_from_str("e"), edit_action)
+            view.set_key_handler(kbd.keystroke_from_str("f"), filter_action)
+
+            if (isinstance(view.model, ResourceListModel)
+                and view.model.resource_kind in self._filters):
+                view.model.filter = Filter(self._filters[view.model.resource_kind])
 
         self._task_executor.start()
 
@@ -180,14 +189,15 @@ class MainApp(Application):
 
     def set_selected_cluster(self, source, cluster):
 
-        if cluster.connection_error:
-            self.show_error(cluster.connection_error)
-        else:
-            models = [self._nodes_model, self._namespaces_model, self._pods_model] + [
-                tab.model for tab in self._custom_tabs
-            ]
-            for model in models:
-                model.set_cluster(cluster)
+        if cluster:
+            if cluster.connection_error:
+                self.show_error(cluster.connection_error)
+            else:
+                models = [self._nodes_model, self._namespaces_model, self._pods_model] + [
+                    tab.model for tab in self._custom_tabs
+                ]
+                for model in models:
+                    model.set_cluster(cluster)
 
     selected_cluster = property(get_selected_cluster, set_selected_cluster)
 
@@ -290,6 +300,7 @@ class MainApp(Application):
         self._read_clusters_config(config_dir)
         self._read_item_templates(config_dir)
         self._read_detail_templates(config_dir)
+        self._read_filters(config_dir)
 
         return first_time
 
@@ -396,6 +407,34 @@ class MainApp(Application):
                 except Exception as e:
                     logging.error(f"Error loading template {fname} - {e}")
         self._detail_templates = templates
+
+    def _read_filters(self, config_dir):
+        filters_dir = os.path.join(self._config_dir, 'filters')
+
+        filters = {}
+        if os.path.isdir(filters_dir):
+            for fname in os.listdir(filters_dir):
+                if fname[-4:] == '.tpl':
+                    try:
+                        with open(os.path.join(filters_dir,fname),'r') as f:
+                            filters[fname.replace('.tpl','')] = f.read()
+                    except Exception as e:
+                        logging.error(f'Error loading filter {fname} - {e}')
+        self._filters = filters
+
+    def save_filter(self, kind, filter_text):
+        self._filters[kind] = filter_text
+        filters_dir = os.path.join(self._config_dir, 'filters')
+        if not os.path.isdir(filters_dir):
+            os.makedirs(filters_dir)
+
+        filename = os.path.join(filters_dir,f'{kind}.tpl')
+        if filter_text:
+            with open(filename,'w') as f:
+                f.write(filter_text)
+        else:
+            if os.path.isfile(filename):
+                os.remove(filename)
 
 
 def main():

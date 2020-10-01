@@ -65,9 +65,11 @@ HELP_CONTENTS = f"""
                        in main view when focused.
     for nodes, namespaces, pods, cronjobs, etc:
         v: display resource as Yaml
+        V: display resource using custom template if defined.
         e: Opens editor to edit resource.
         d: Deletes de selected resource.
         c: Creates/updates a kubernetes resource from a yaml file.
+        f: Edit filters for a given view
     for pods:
         l: View pod logs.
     for nodes:
@@ -104,7 +106,7 @@ POD_TEMPLATE = """
 \u001b[31m
 {% endif %}
 {{fill(item.metadata.name,width-22)}}
-{{fill(item.status.phase,-12)}}
+{{fill(item.status.reason or item.status.phase,-12)}}
 {{fill(age(item.metadata.creationTimestamp),-10)}}
 \u001b[37m
 """
@@ -144,3 +146,15 @@ TEMPLATES = {
     "Secret": SECRET_TEMPLATE,
     "DaemonSet": DAEMONSET_TEMPLATE,
 }
+
+FILTER_TEMPLATE = """
+{#
+ The contents of this file will be evaluated as a Jinja template.
+ The result must be a boolean value.
+ Comment lines are ignored.
+ The resources being filtered are exposed to jinja context as the variable "item".
+ For example:
+ item.metadata.name == 'pod1'
+#}
+{{ True }}
+"""
