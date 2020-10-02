@@ -39,7 +39,7 @@ This file configures the paths to kube config files of clusters.
 ### colors.ini
 Allows customize the UI. On the first run the program will dump here the actual settings.
 
-## User interface Navigation
+## User interface and Navigation
 
 ### Keys
 * h : Show this help.    
@@ -52,9 +52,39 @@ Allows customize the UI. On the first run the program will dump here the actual 
   * e: Opens editor to edit resource as Yaml.    
   * d: Deletes de selected resource.
   * c: Creates/updates a kubernetes resource from a yaml file.
+  * f: Edit filter for current view.
+  * F: Edit global filter for all views.
 * for pods:           
   * l: View pod logs.    
 * for nodes:          
   * l: view labels for node.    
 * for namespaces:     
   * enter: toggle namespace filter, all other views will filter its item by selected namespace.
+
+### Editing Files.
+The application relies on an external editor for editing resource files. Check configuration section for more details.
+
+### Filtering
+Both filters and global filters use Jinja to write expressions for filtering resources.
+The template files must always evaluate to "True" for a given resource to allow view it.
+The resource being filtered is exposed in a variable called **item**, which contents match the structure of Yaml resource files.
+
+For example, a global filter for resources with a given name prefix:
+
+    {{ item.metadata.name[0:3] == 'id-' }}
+
+Filters are persistent, so once you exit and launch again the application you will still see them.
+
+### Resource list rendering.
+How items in resource list are rendered can be also customized via Jinja.
+In **$HOME/.kubemgr/item-templates** there will be all actual templates for resources.
+To add a new resource template, the name must be the resource Kind + '.tpl'.
+
+### Jinja utilities
+Some helper functions are introduced in Jinja context:
+* parse_mem(str): Parses a memory value and returns it as integer in bytes
+* format_mem(int): Formats a given memory value into NNKB, NNMB, NNGB. This is actually more useful for item rendering than for filtering.
+* ts_parse(str): Parses a string representation of a timestamp into a datetime object.
+* age(str): Formats a given timestamp string into days and hours.
+* str(v): Returns string representation as actual python str.
+* int(str): Returns integer value from its string representation.

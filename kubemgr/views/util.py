@@ -83,12 +83,16 @@ def _do_fill(string, length):
             string = padding + string
     return string
 
+def _ts_parse(date_string):
+    if date_string:
+        if date_string[-1] == 'Z':
+            date_string = date_string.replace('Z','+0000')
+        return datetime.strptime(date_string, "%Y-%m-%dT%H:%M:%S%z")
+    return None
 
 def _do_age(date_string):
     now = datetime.now(tz=timezone.utc)
-    if date_string[-1] == 'Z':
-        date_string = date_string.replace('Z','+0000')
-    dt = datetime.strptime(date_string, "%Y-%m-%dT%H:%M:%S%z")
+    dt = _ts_parse(date_string)
     delta = now - dt
 
     if delta.days > 0:
@@ -106,6 +110,7 @@ def _do_age(date_string):
 BASE_JINJA_CONTEXT = {
     "parse_mem": _parse_mem,
     "format_mem": _format_mem,
+    "ts_parse" : _ts_parse,
     "fill": _do_fill,
     "age": _do_age,
     "str": str,
