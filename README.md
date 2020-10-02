@@ -2,13 +2,24 @@
 A little console based tool for managing Kubernetes clusters.    
     
 ![Screenhost](screenshot.png?raw=true "Screenhost")    
+
+## Features
+* Allow connect to multiple clusters 
+* Filters per view or global
+* Add, view, edit and delete resources
+* Customize view via Jinja templates
     
 ## Setup and install    
-    
-    python3 setup.sh install    
 
 ### Dependencies
-    kubernetes>=11.0.0
+* cdtui: Requires install from sources from this location: https://github.com/Carlos-Descalzi/cdtui
+* kubernetes>=11.0.0
+* Jinja2==2.11.2
+
+### Install
+    sudo python3 setup.py install    
+    or, for local setup:
+    python3 setup.py install --prefix=$HOME/.local
 
 ## Configuration Files
 
