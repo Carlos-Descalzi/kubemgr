@@ -43,7 +43,8 @@ from .actions import (
     ViewResource,
     CustomViewResource,
     EditResource,
-    EditFilterAction
+    EditFilterAction,
+    EditGlobalFilterAction
 )
 from .cluster import Cluster
 from .texts import (
@@ -71,6 +72,7 @@ class MainApp(Application):
         self._config = {}
         self._templates = {}
         self._filters = {}
+        self._resource_views = []
         first_time = self._read_configuration(config_dir)
 
         self._clusters_model = ClustersListModel(self)
@@ -150,6 +152,7 @@ class MainApp(Application):
         edit_action = EditResource(self)
         help_action = ShowHelp(self)
         filter_action = EditFilterAction(self)
+        global_filter_action = EditGlobalFilterAction(self)
 
         self.set_key_handler(kbd.keystroke_from_str("h"), help_action)
         self.set_key_handler(kbd.keystroke_from_str("c"), CreateResource(self))
@@ -158,20 +161,26 @@ class MainApp(Application):
             kbd.keystroke_from_str("l"), ShowNodeLabels(self)
         )
 
-        resource_views = [self._pods_view, self._nodes_view, self._namespaces_view] + [
+        self._resource_views = [self._pods_view, self._nodes_view, self._namespaces_view] + [
             tab.view for tab in self._custom_tabs
         ]
 
-        for view in resource_views:
+        global_filter = self._build_global_filter()
+
+        for view in self._resource_views:
             view.set_key_handler(kbd.keystroke_from_str("d"), delete_action)
             view.set_key_handler(kbd.keystroke_from_str("v"), view_action)
             view.set_key_handler(kbd.keystroke_from_str("V"), custom_view_action)
             view.set_key_handler(kbd.keystroke_from_str("e"), edit_action)
             view.set_key_handler(kbd.keystroke_from_str("f"), filter_action)
+            view.set_key_handler(kbd.keystroke_from_str("F"), global_filter_action)
 
-            if (isinstance(view.model, ResourceListModel)
-                and view.model.resource_kind in self._filters):
-                view.model.filter = Filter(self._filters[view.model.resource_kind])
+            if isinstance(view.model, ResourceListModel):
+                if view.model.resource_kind in self._filters:
+                    view.model.filter = Filter(self._filters[view.model.resource_kind])
+
+                if global_filter:
+                    view.model.global_filter = global_filter
 
         self._task_executor.start()
 
@@ -421,6 +430,22 @@ class MainApp(Application):
                     except Exception as e:
                         logging.error(f'Error loading filter {fname} - {e}')
         self._filters = filters
+
+    def get_global_filter(self):
+        return self._filters.get('GLOBAL')
+
+    def set_global_filter(self, filter_string):
+        self.save_filter('GLOBAL',filter_string)
+
+        global_filter = Filter(filter_string) if filter_string else None
+
+        for view in self._resource_views:
+            if isinstance(view.model, ResourceListModel):
+                view.model.global_filter = global_filter
+
+    def _build_global_filter(self):
+        filter_string = self.get_global_filter()
+        return Filter(filter_string) if filter_string else None
 
     def save_filter(self, kind, filter_text):
         self._filters[kind] = filter_text

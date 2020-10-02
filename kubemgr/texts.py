@@ -147,11 +147,25 @@ TEMPLATES = {
     "DaemonSet": DAEMONSET_TEMPLATE,
 }
 
-FILTER_TEMPLATE = """
-{#
+FILTER_TEMPLATE = """{#
+ Resource Filters
+ ================
  The contents of this file will be evaluated as a Jinja template.
  The result must be a boolean value.
  Comment lines are ignored.
+ The resources being filtered are exposed to jinja context as the variable "item".
+ For example:
+ item.metadata.name == 'pod1'
+#}
+{{ True }}
+"""
+GLOBAL_FILTER_TEMPLATE = """{#
+ Global Resource Filters
+ =======================
+ The contents of this file will be evaluated as a Jinja template.
+ The result must be a boolean value.
+ Comment lines are ignored.
+ This is a global filter, so consider to filter by fields common to all resources.
  The resources being filtered are exposed to jinja context as the variable "item".
  For example:
  item.metadata.name == 'pod1'
