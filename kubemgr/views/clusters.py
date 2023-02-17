@@ -1,5 +1,7 @@
 from cdtui import ansi, ListModel, ListView
 import logging
+from typing import List, Optional
+from kubemgr.cluster import Cluster
 
 
 class ClustersListModel(ListModel):
@@ -10,17 +12,17 @@ class ClustersListModel(ListModel):
         self._application = application
         self.set_clusters([])
 
-    def set_clusters(self, clusters=[]):
+    def set_clusters(self, clusters:Optional[List[Cluster]]=None):
         if self._clusters:
             for cluster in self._clusters:
                 cluster.on_connect.remove(self._connected)
                 cluster.on_error.remove(self._error)
-        self._clusters = sorted(self._application.clusters, key=lambda x: x.name)
+        self._clusters = sorted(clusters or [], key=lambda x: x.name)
         for cluster in self._clusters:
             cluster.on_connect.add(self._connected)
             cluster.on_error.add(self._error)
 
-    def _connected(self, cluster):
+    def _connected(self, cluster:Cluster):
         self.notify_list_changed()
         logging.info(f"{cluster} Connected!")
 
@@ -28,11 +30,11 @@ class ClustersListModel(ListModel):
         self.notify_list_changed()
         logging.error(f"Connection error! {cluster} {error}")
 
-    def get_item_count(self):
-        return len(self._clusters)
+    def get_item_count(self) -> int:
+        return len(self._clusters) if self._clusters else 0
 
     def get_item(self, index):
-        return self._clusters[index]
+        return self._clusters[index] if self._clusters else None
 
 
 class ClusterListView(ListView):

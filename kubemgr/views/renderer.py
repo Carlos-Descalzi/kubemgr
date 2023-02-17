@@ -1,5 +1,5 @@
-import logging
-from jinja2 import Template
+from typing import Any
+
 from .util import BASE_JINJA_CONTEXT
 
 
@@ -7,7 +7,7 @@ class ItemRenderer:
     def __init__(self, app):
         self._app = app
 
-    def __call__(self, view, item):
+    def __call__(self, view, item: Any) -> str:
         template = self._get_template(view.model.resource_kind)
         if not template:
             return item["metadata"]["name"]

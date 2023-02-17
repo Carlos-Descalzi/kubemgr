@@ -1,59 +1,36 @@
-import logging
-
-logging.basicConfig(filename="kubemgr.log", format="%(message)s", level=logging.INFO)
-import os
-import tty
-import sys
-import time
-import yaml
-import atexit
-import tempfile
-import subprocess
 import configparser
-from kubernetes import client, config
-from kubernetes.client import configuration
+import logging
+import os
+import subprocess
 from collections import defaultdict
-from abc import ABCMeta, abstractmethod
+from typing import Any, Dict, Optional
+
+from cdtui import COLORS, Application, QuestionDialog, Rect, TabbedView, TextView, TitledView, ansi, kbd
 from jinja2 import Template
-from .util import misc
-from cdtui import (
-    ansi,
-    kbd,
-    COLORS,
-    Application,
-    Rect,
-    TitledView,
-    TabbedView,
-    TextView,
-    FileChooser,
-    QuestionDialog,
-    ListView,
-)
-from .util.executor import TaskExecutor
-from .views.clusters import ClusterListView, ClustersListModel
-from .views.namespaces import NamespacesListModel, NamespacesListView
-from .views.resource import ResourceListModel, ResourceListView, Filter
-from .views.renderer import ItemRenderer
+
 from .actions import (
     CreateResource,
+    CustomViewResource,
+    DeleteResource,
+    EditFilterAction,
+    EditGlobalFilterAction,
+    EditResource,
+    ShowHelp,
     ShowLogs,
     ShowNodeLabels,
-    ShowHelp,
-    DeleteResource,
     ViewResource,
-    CustomViewResource,
-    EditResource,
-    EditFilterAction,
-    EditGlobalFilterAction
 )
 from .cluster import Cluster
-from .texts import (
-    CLUSTERS_CONFIG_TEMPLATE,
-    CLUSTERS_CONFIG_EMPTY_TEMPLATE,
-    KUBEMGR_DEFAUL_CONFIG_TEMPLATE,
-    HELP_CONTENTS,
-    TEMPLATES,
-)
+from .texts import CLUSTERS_CONFIG_EMPTY_TEMPLATE, CLUSTERS_CONFIG_TEMPLATE, KUBEMGR_DEFAUL_CONFIG_TEMPLATE, TEMPLATES
+from .util import misc
+from .util.executor import TaskExecutor
+from .views.clusters import ClusterListView, ClustersListModel
+from .views.namespaces import NamespacesListModel, NamespacesListView, NsItem
+from .views.renderer import ItemRenderer
+from .views.resource import Filter, ResourceListModel, ResourceListView
+
+logging.basicConfig(handlers=[logging.FileHandler("kubemgr.log")], level=logging.DEBUG)
+_logger = logging.getLogger(__name__)
 
 
 class TabInfo:
@@ -76,12 +53,10 @@ class MainApp(Application):
         first_time = self._read_configuration(config_dir)
 
         self._clusters_model = ClustersListModel(self)
-        self._clusters_view = ClusterListView(
-            model=self._clusters_model, selectable=True
-        )
+        self._clusters_view = ClusterListView(model=self._clusters_model, selectable=True)
         self._item_renderer = ItemRenderer(self)
 
-        self._clusters_view.on_select.add(self.set_selected_cluster)
+        self._clusters_view.on_select.add(self._cluster_selected)
         self._nodes_model = ResourceListModel(self, "Node")
         self._nodes_view = ResourceListView(model=self._nodes_model)
         self._nodes_view.set_item_renderer(self._item_renderer)
@@ -157,9 +132,7 @@ class MainApp(Application):
         self.set_key_handler(kbd.keystroke_from_str("h"), help_action)
         self.set_key_handler(kbd.keystroke_from_str("c"), CreateResource(self))
         self._pods_view.set_key_handler(kbd.keystroke_from_str("l"), ShowLogs(self))
-        self._nodes_view.set_key_handler(
-            kbd.keystroke_from_str("l"), ShowNodeLabels(self)
-        )
+        self._nodes_view.set_key_handler(kbd.keystroke_from_str("l"), ShowNodeLabels(self))
 
         self._resource_views = [self._pods_view, self._nodes_view, self._namespaces_view] + [
             tab.view for tab in self._custom_tabs
@@ -193,10 +166,13 @@ class MainApp(Application):
         if first_time:
             help_action()
 
-    def get_selected_cluster(self):
+    def _cluster_selected(self, source, cluster: Cluster):
+        self.selected_cluster = cluster
+
+    def get_selected_cluster(self) -> Optional[Cluster]:
         return self._clusters_view.get_selected_item()
 
-    def set_selected_cluster(self, source, cluster):
+    def set_selected_cluster(self, cluster: Optional[Cluster]):
 
         if cluster:
             if cluster.connection_error:
@@ -210,8 +186,8 @@ class MainApp(Application):
 
     selected_cluster = property(get_selected_cluster, set_selected_cluster)
 
-    def show_error(self, error):
-        logging.error(error)
+    def show_error(self, error: Any):
+        _logger.error(error)
         error_str = self._format_error(error)
         self.show_text_popup(error_str)
 
@@ -234,7 +210,7 @@ class MainApp(Application):
         dialog = QuestionDialog(title, message, options)
         self.open_popup(dialog)
 
-    def show_text_popup(self, text):
+    def show_text_popup(self, text: str):
         max_height, max_width = ansi.terminal_size()
 
         popup_width = int(max_width * 0.75)
@@ -249,7 +225,7 @@ class MainApp(Application):
         text_view = TextView(rect=rect, text=text)
         self.open_popup(text_view)
 
-    def show_file(self, text, format_hint=None, force_internal_viewer=False):
+    def show_file(self, text: str, format_hint=None, force_internal_viewer=False):
         viewer = self.get_general_config().get("viewer")
 
         if viewer and not force_internal_viewer:
@@ -259,7 +235,7 @@ class MainApp(Application):
         else:
             self.show_text_popup(text)
 
-    def edit_file(self, text, format_hint=None):
+    def edit_file(self, text: str, format_hint=None) -> Optional[str]:
         editor = self.get_general_config().get("editor")
         if editor:
             tf = misc.make_tempfile(text, format_hint)
@@ -272,14 +248,14 @@ class MainApp(Application):
                     return new_text
         return None
 
-    def _format_error(self, error):
+    def _format_error(self, error: Any) -> str:
         error_str = misc.word_wrap_text(str(error), 70)
         return f"An error has occurred:\n\n{error_str}"
 
     def _on_finish(self):
         self._task_executor.finish()
 
-    def _on_namespace_selected(self, source, item):
+    def _on_namespace_selected(self, source: Any, item: NsItem):
         namespace = item.name if item.selected else None
         models = [self._pods_model] + [tab.model for tab in self._custom_tabs]
         for model in models:
@@ -289,7 +265,7 @@ class MainApp(Application):
     def get_general_config(self):
         return self._config["general"]
 
-    def _get_tabs_config(self):
+    def _get_tabs_config(self) -> Dict[str, Any]:
         config = defaultdict(dict)
         tabs_config = self._config["tabs"]
         for key in tabs_config:
@@ -297,7 +273,7 @@ class MainApp(Application):
             config[tabname][entry] = tabs_config[key]
         return config
 
-    def _read_configuration(self, config_dir):
+    def _read_configuration(self, config_dir: str) -> bool:
 
         first_time = not os.path.isdir(config_dir)
 
@@ -313,7 +289,7 @@ class MainApp(Application):
 
         return first_time
 
-    def _read_general_config(self, config_dir):
+    def _read_general_config(self, config_dir: str):
         general_config_file = os.path.join(config_dir, "kubemgr.ini")
 
         if not os.path.isfile(general_config_file):
@@ -340,11 +316,9 @@ class MainApp(Application):
         if not (cluster_name or cluster_file):
             return CLUSTERS_CONFIG_EMPTY_TEMPLATE
 
-        return CLUSTERS_CONFIG_TEMPLATE.format(
-            cluster_name=cluster_name, cluster_file=cluster_file
-        )
+        return CLUSTERS_CONFIG_TEMPLATE.format(cluster_name=cluster_name, cluster_file=cluster_file)
 
-    def _read_colors_config(self, config_dir):
+    def _read_colors_config(self, config_dir: str):
         colors_config_file = os.path.join(config_dir, "colors.ini")
 
         if os.path.isfile(colors_config_file):
@@ -365,7 +339,7 @@ class MainApp(Application):
                     v = v.encode("unicode_escape").decode("utf-8")
                     f.write(f"{k}={v}\n")
 
-    def _read_clusters_config(self, config_dir):
+    def _read_clusters_config(self, config_dir: str):
         clusters_config_file = os.path.join(config_dir, "clusters.ini")
 
         if not os.path.isfile(clusters_config_file):
@@ -381,7 +355,7 @@ class MainApp(Application):
             self._clusters.append(cluster)
             cluster.connect()
 
-    def _read_item_templates(self, config_dir):
+    def _read_item_templates(self, config_dir: str):
         templates_dir = os.path.join(config_dir, "item-templates")
 
         if not os.path.isdir(templates_dir):
@@ -398,10 +372,10 @@ class MainApp(Application):
                     with open(os.path.join(templates_dir, fname), "r") as f:
                         templates[fname.replace(".tpl", "")] = Template(f.read())
                 except Exception as e:
-                    logging.error(f"Error loading template {fname} - {e}")
+                    _logger.error(f"Error loading template {fname}", e)
         self._item_templates = templates
 
-    def _read_detail_templates(self, config_dir):
+    def _read_detail_templates(self, config_dir: str):
         templates_dir = os.path.join(config_dir, "detail-templates")
 
         if not os.path.isdir(templates_dir):
@@ -414,28 +388,28 @@ class MainApp(Application):
                     with open(os.path.join(templates_dir, fname), "r") as f:
                         templates[fname.replace(".tpl", "")] = Template(f.read())
                 except Exception as e:
-                    logging.error(f"Error loading template {fname} - {e}")
+                    _logger.error(f"Error loading template {fname}", e)
         self._detail_templates = templates
 
-    def _read_filters(self, config_dir):
-        filters_dir = os.path.join(self._config_dir, 'filters')
+    def _read_filters(self, config_dir: str):
+        filters_dir = os.path.join(self._config_dir, "filters")
 
         filters = {}
         if os.path.isdir(filters_dir):
             for fname in os.listdir(filters_dir):
-                if fname[-4:] == '.tpl':
+                if fname[-4:] == ".tpl":
                     try:
-                        with open(os.path.join(filters_dir,fname),'r') as f:
-                            filters[fname.replace('.tpl','')] = f.read()
+                        with open(os.path.join(filters_dir, fname), "r") as f:
+                            filters[fname.replace(".tpl", "")] = f.read()
                     except Exception as e:
-                        logging.error(f'Error loading filter {fname} - {e}')
+                        _logger.error(f"Error loading filter {fname}", e)
         self._filters = filters
 
-    def get_global_filter(self):
-        return self._filters.get('GLOBAL')
+    def get_global_filter(self) -> Optional[str]:
+        return self._filters.get("GLOBAL")
 
     def set_global_filter(self, filter_string):
-        self.save_filter('GLOBAL',filter_string)
+        self.save_filter("GLOBAL", filter_string)
 
         global_filter = Filter(filter_string) if filter_string else None
 
@@ -443,19 +417,19 @@ class MainApp(Application):
             if isinstance(view.model, ResourceListModel):
                 view.model.global_filter = global_filter
 
-    def _build_global_filter(self):
+    def _build_global_filter(self) -> Optional[Filter]:
         filter_string = self.get_global_filter()
         return Filter(filter_string) if filter_string else None
 
-    def save_filter(self, kind, filter_text):
+    def save_filter(self, kind, filter_text: str):
         self._filters[kind] = filter_text
-        filters_dir = os.path.join(self._config_dir, 'filters')
+        filters_dir = os.path.join(self._config_dir, "filters")
         if not os.path.isdir(filters_dir):
             os.makedirs(filters_dir)
 
-        filename = os.path.join(filters_dir,f'{kind}.tpl')
+        filename = os.path.join(filters_dir, f"{kind}.tpl")
         if filter_text:
-            with open(filename,'w') as f:
+            with open(filename, "w") as f:
                 f.write(filter_text)
         else:
             if os.path.isfile(filename):

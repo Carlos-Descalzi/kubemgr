@@ -1,9 +1,9 @@
-from cdtui import ListModel
+import re
 from abc import ABCMeta, abstractmethod
-import logging
-import json
-from typing import List, Any
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
+from typing import Any, List, Optional
+
+from cdtui import ListModel
 
 
 class AsyncListModel(ListModel, metaclass=ABCMeta):
@@ -38,13 +38,11 @@ class AsyncListModel(ListModel, metaclass=ABCMeta):
         pass
 
 
-import re
-
 _PARSERS = [
     (re.compile("^([0-9]+)$"), lambda x: int(x)),
     (re.compile("^([0-9]+)K[ibB]?$"), lambda x: int(x) * 1024),
-    (re.compile("^([0-9]+)M[ibB]?$"), lambda x: int(x) * (1024 ** 2)),
-    (re.compile("^([0-9]+)G[ibB]?$"), lambda x: int(x) * (1024 ** 3)),
+    (re.compile("^([0-9]+)M[ibB]?$"), lambda x: int(x) * (1024**2)),
+    (re.compile("^([0-9]+)G[ibB]?$"), lambda x: int(x) * (1024**3)),
 ]
 
 
@@ -60,57 +58,62 @@ def _parse_mem(string):
 def _format_mem(val):
     if val < 1024:
         return f"{val}B"
-    if val < 1024 ** 2:
+    if val < 1024**2:
         v = int(val / 1024)
         return f"{v}KB"
-    if val < 1024 ** 3:
-        v = int(val / (1024 ** 2))
+    if val < 1024**3:
+        v = int(val / (1024**2))
         return f"{v}MB"
-    v = int(val / (1024 ** 3))
+    v = int(val / (1024**3))
     return f"{v}GB"
 
 
-def _do_fill(string, length):
+def _do_fill(string: str, length: int) -> str:
     # > 0 means left padding, < 0 right padding.
-    l = abs(length)
-    if len(string) > l:
-        string = string[0:l]
-    elif len(string) < l:
-        padding = " " * (l - len(string))
+    al = abs(length)
+    if len(string) > al:
+        string = string[0:al]
+    elif len(string) < al:
+        padding = " " * (al - len(string))
         if length > 0:
             string += padding
         else:
             string = padding + string
     return string
 
-def _ts_parse(date_string):
+
+def _ts_parse(date_string:Optional[str]) -> Optional[datetime]:
     if date_string:
-        if date_string[-1] == 'Z':
-            date_string = date_string.replace('Z','+0000')
+        if date_string[-1] == "Z":
+            date_string = date_string.replace("Z", "+0000")
         return datetime.strptime(date_string, "%Y-%m-%dT%H:%M:%S%z")
     return None
+
 
 def _do_age(date_string):
     now = datetime.now(tz=timezone.utc)
     dt = _ts_parse(date_string)
-    delta = now - dt
 
-    if delta.days > 0:
-        return f"{delta.days}d"
+    if dt:
+        delta = now - dt
 
-    minutes = int(delta.seconds / 60) % 60
-    hours = int(delta.seconds / (60 * 60)) % 24
-    delta_str = ""
-    if hours > 0:
-        delta_str += f"{hours}h"
-    delta_str += f"{minutes}m"
-    return delta_str
+        if delta.days > 0:
+            return f"{delta.days}d"
+
+        minutes = int(delta.seconds / 60) % 60
+        hours = int(delta.seconds / (60 * 60)) % 24
+        delta_str = ""
+        if hours > 0:
+            delta_str += f"{hours}h"
+        delta_str += f"{minutes}m"
+        return delta_str
+    return ""
 
 
 BASE_JINJA_CONTEXT = {
     "parse_mem": _parse_mem,
     "format_mem": _format_mem,
-    "ts_parse" : _ts_parse,
+    "ts_parse": _ts_parse,
     "fill": _do_fill,
     "age": _do_age,
     "str": str,

@@ -1,9 +1,11 @@
-from kubernetes import client
-from .util import AsyncListModel
-from .resource import ResourceListView
-from collections import OrderedDict
-import logging
 import json
+import logging
+from typing import Any
+
+from .resource import ResourceListView
+from .util import AsyncListModel
+
+_logger = logging.getLogger(__name__)
 
 
 class NsItem:
@@ -42,13 +44,17 @@ class NamespacesListModel(AsyncListModel):
         return self._cluster is not None
 
     def fetch_data(self):
+        _logger.info(f"1 {self._cluster} {self._cluster.connected if self._cluster else ''}")
         if self._cluster and self._cluster.connected:
             try:
                 result = self._cluster.do_simple_get("/api/v1/namespaces")
+                _logger.info("2")
                 namespaces = json.loads(result.decode())["items"]
+                _logger.info("3")
+                _logger.info(f"Namespaces: {namespaces}")
                 return [NsItem(i) for i in namespaces]
-            except Exception as e:
-                logging.error(e)
+            except Exception:
+                _logger.exception("Cannot get namespaces")
         return []
 
 
@@ -62,14 +68,14 @@ class NamespacesListView(ResourceListView):
         item = super().current_item
         return item.namespace if item else None
 
-    def _do_render_item(self, view, item):
-        width = self._rect.width
-        name = item.name[0 : width - 4]
-        name += " " * max(0, ((width - 4) - len(name)))
+    def _do_render_item(self, view, item: Any) -> str:
+        width = self._rect.width - 4
+        name = item.name[0:width]
+        name += " " * max(0, (width - len(name)))
         name += "(F)" if item.selected else " "
         return name
 
-    def _select(self, index):
+    def _select(self, index: int):
         for i in range(self._model.get_item_count()):
             item = self._model.get_item(i)
             if i == index:
