@@ -110,3 +110,4 @@ Some helper functions are introduced in Jinja context:
 * str(v): Returns string representation as actual python str.
 * int(str): Returns integer value from its string representation.
 
+
