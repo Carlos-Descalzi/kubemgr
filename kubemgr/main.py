@@ -28,6 +28,7 @@ from .views.clusters import ClusterListView, ClustersListModel
 from .views.namespaces import NamespacesListModel, NamespacesListView, NsItem
 from .views.renderer import ItemRenderer
 from .views.resource import Filter, ResourceListModel, ResourceListView
+from .views.contexts import ContextsListModel, ContextsListView
 
 logging.basicConfig(handlers=[logging.FileHandler("kubemgr.log")], level=logging.DEBUG)
 _logger = logging.getLogger(__name__)
@@ -57,6 +58,10 @@ class MainApp(Application):
         self._item_renderer = ItemRenderer(self)
 
         self._clusters_view.on_select.add(self._cluster_selected)
+
+        self._contexts_model = ContextsListModel(self)
+        self._contexts_view = ContextsListView(model=self._contexts_model)
+
         self._nodes_model = ResourceListModel(self, "Node")
         self._nodes_view = ResourceListView(model=self._nodes_model)
         self._nodes_view.set_item_renderer(self._item_renderer)
@@ -84,9 +89,11 @@ class MainApp(Application):
 
         h_divider_pos = int(max_width * 0.25)
 
-        v_clusters_height = int(max_height * 0.3)
-        v_nodes_start = v_clusters_height + 1
-        v_nodes_height = int(max_height * 0.3)
+        v_clusters_height = int(max_height * 0.25)
+        v_contexts_start = v_clusters_height + 1
+        v_contexts_height = int(max_height * 0.25)
+        v_nodes_start = v_contexts_start + v_contexts_height + 1
+        v_nodes_height = int(max_height * 0.25)
         v_namespaces_start = v_nodes_start + v_nodes_height + 1
         v_namespaces_height = max_height - v_namespaces_start - 1
 
@@ -99,6 +106,15 @@ class MainApp(Application):
         )
 
         self.add_component(clusters_title)
+
+        self.add_component(
+            TitledView(
+                rect=Rect(1, v_contexts_start, h_divider_pos, v_contexts_height),
+                title="Contexts",
+                inner=self._contexts_view,
+            )
+        )
+
         self.add_component(
             TitledView(
                 rect=Rect(1, v_nodes_start, h_divider_pos, v_nodes_height),
@@ -178,7 +194,7 @@ class MainApp(Application):
             if cluster.connection_error:
                 self.show_error(cluster.connection_error)
             else:
-                models = [self._nodes_model, self._namespaces_model, self._pods_model] + [
+                models = [self._contexts_model, self._nodes_model, self._namespaces_model, self._pods_model] + [
                     tab.model for tab in self._custom_tabs
                 ]
                 for model in models:
@@ -230,7 +246,9 @@ class MainApp(Application):
 
         if viewer and not force_internal_viewer:
             tf = misc.make_tempfile(text, format_hint)
+            self._restore_term()
             subprocess.run([viewer, tf.name])
+            self._init_term()
             self.refresh()
         else:
             self.show_text_popup(text)

@@ -42,6 +42,7 @@ class Cluster:
 
     def __init__(self, application, name, config_file, request_timeout=5):
         self._application = application
+        self._config_loader = None
         self._config_name = name
         self._name = None
         self.config_file = config_file
@@ -56,7 +57,7 @@ class Cluster:
 
     @property
     def name(self):
-        return self._name or self._config_name
+        return self.config_file
 
     def __str__(self):
         return f"Cluster connection {self.name}"
@@ -133,6 +134,14 @@ class Cluster:
             path += f"/{verb}"
 
         return path
+
+    def get_contexts(self):
+        if self._config_loader:
+            return self._config_loader.list_contexts()
+        return []
+
+    def get_active_context(self):
+        return self._config_loader.current_context
 
     def _create_connection(self):
 
