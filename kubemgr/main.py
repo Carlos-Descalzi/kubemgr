@@ -246,9 +246,9 @@ class MainApp(Application):
 
         if viewer and not force_internal_viewer:
             tf = misc.make_tempfile(text, format_hint)
-            self._restore_term()
-            subprocess.run([viewer, tf.name])
-            self._init_term()
+
+            with self.pause_app():
+                subprocess.run([viewer, tf.name])
             self.refresh()
         else:
             self.show_text_popup(text)
@@ -257,7 +257,9 @@ class MainApp(Application):
         editor = self.get_general_config().get("editor")
         if editor:
             tf = misc.make_tempfile(text, format_hint)
-            result = subprocess.run([editor, tf.name])
+
+            with self.pause_app():
+                result = subprocess.run([editor, tf.name])
             self.refresh()
             if result.returncode == 0:
                 tf.seek(0)
