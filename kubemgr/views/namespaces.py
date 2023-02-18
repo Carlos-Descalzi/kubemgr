@@ -1,4 +1,5 @@
 import json
+from cdtui import ansi
 import logging
 from typing import Any
 
@@ -69,10 +70,10 @@ class NamespacesListView(ResourceListView):
         return item.namespace if item else None
 
     def _do_render_item(self, view, item: Any) -> str:
-        width = self._rect.width - 4
+        width = self._rect.width - 2
         name = item.name[0:width]
         name += " " * max(0, (width - len(name)))
-        name += "(F)" if item.selected else " "
+        name += str(ansi.begin().fg(2).write("✓").reset()) if item.selected else " "
         return name
 
     def _select(self, index: int):
